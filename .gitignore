@@ -11,7 +11,7 @@ logs/
 models/
 ressources/
 .ruff_cache
-data/*.h5
+examples/
 venv/
 .venv/
 
