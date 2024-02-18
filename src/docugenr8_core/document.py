@@ -50,12 +50,14 @@ class Document:
         for font_name, font in self.fonts.items():
             dto_font = DtoFont(font_name, font.raw_data)
             dto.fonts.append(dto_font)
-        for page in self.pages:
+        for page_number, page in enumerate(self.pages):
             dto_page = DtoPage(page._width, page._height)
             dto.pages.append(dto_page)
             for content in page._contents:
                 match content:
                     case TextArea():
+                        content._build_current_page_fragments(page_number + 1)
+                        content._build_total_pages_fragments(len(self.pages))
                         dto_page.contents.append(
                             _generate_dto_text_area(content)
                             )

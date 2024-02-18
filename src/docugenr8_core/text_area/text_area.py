@@ -338,9 +338,9 @@ class TextArea:
             next_word = self._get_next_word()
             if next_word is None:
                 return
-            if next_word._has_current_page_fragments:
+            if next_word._has_current_page_fragments():
                 self.words_with_current_page_fragments.append(next_word)
-            if next_word._has_total_pages_fragments:
+            if next_word._has_total_pages_fragments():
                 self.words_with_total_pages_fragments.append(next_word)
             self._generate_paragraph_when_pulling_words(next_word)
             self._remove_word(next_word)
@@ -491,3 +491,55 @@ class TextArea:
         if len(self.paragraphs[0].lines[0].words) == 0:
             return True
         return False
+
+    def _build_current_page_fragments(
+        self,
+        current_page: int
+        ) -> None:
+        for word in self.words_with_current_page_fragments:
+            for fragment in word.current_page_fragments:
+                if fragment.page_number_presentation is None:
+                    continue
+                font = self.document.fonts[fragment.font_name]
+                chars = fragment.page_number_presentation(current_page)
+                page_number_width = 0.0
+                if len(chars) > 0:
+                    fragment.chars = chars
+                    for char in chars:
+                        page_number_width += font._get_char_width(
+                            char, fragment.font_size)
+                fragment._adjust_width(page_number_width)
+                if (fragment.word is not None
+                    and fragment.word.textline is not None
+                    and fragment.word.textline.paragraph is not None
+                    and fragment.word.textline.paragraph.textarea is not None):
+                    paragraph = fragment.word.textline.paragraph
+                    paragraph._reallocate_words_in_paragraph()
+                    textarea = fragment.word.textline.paragraph.textarea
+                    textarea._pull_and_push_words_to_available_space()
+
+    def _build_total_pages_fragments(
+        self,
+        total_pages: int
+        ) -> None:
+        for word in self.words_with_total_pages_fragments:
+            for fragment in word.total_pages_fragments:
+                if fragment.page_number_presentation is None:
+                    continue
+                font = self.document.fonts[fragment.font_name]
+                chars = fragment.page_number_presentation(total_pages)
+                new_length = 0.0
+                if len(chars) > 0:
+                    fragment.chars = chars
+                    for char in chars:
+                        new_length += font._get_char_width(
+                            char, fragment.font_size)
+                fragment._adjust_width(new_length)
+                if (fragment.word is not None
+                    and fragment.word.textline is not None
+                    and fragment.word.textline.paragraph is not None
+                    and fragment.word.textline.paragraph.textarea is not None):
+                    paragraph = fragment.word.textline.paragraph
+                    paragraph._reallocate_words_in_paragraph()
+                    textarea = fragment.word.textline.paragraph.textarea
+                    textarea._pull_and_push_words_to_available_space()
