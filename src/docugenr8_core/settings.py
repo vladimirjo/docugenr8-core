@@ -21,6 +21,4 @@ class Settings:
         self.page_num_current_page_dummy: str = "%%pn%%"
         self.page_num_total_pages_dummy: str = "%%tp%%"
         self.page_num_dummy_length: int = 3
-        self.page_num_presentation: Callable[[int], str] = (
-            lambda page_number: str(page_number)  # noqa: PLW0108
-        )
+        self.page_num_presentation: Callable[[int], str] = (str)

@@ -101,7 +101,6 @@ def _generate_dto_text_line(
     # y += dto_text_line.justify_padding_after
     return dto_text_line
 
-
 def _generate_dto_paragraph(
     x: float,
     y: float,
@@ -157,7 +156,7 @@ def _generate_dto_paragraph(
     dto_paragraph.height += height_diff
     return dto_paragraph
 
-def generate_dto_text_area(
+def _generate_dto_text_area(
     text_area: TextArea
     ) -> DtoTextArea:
     y_offset: float = 0.0

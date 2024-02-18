@@ -11,7 +11,9 @@ if TYPE_CHECKING:
     from .word import Word
 
 class Word:
-    def __init__(self) -> None:
+    def __init__(
+        self
+        ) -> None:
         self.textline: None | TextLine = None
         self.fragments: deque[Fragment] = deque()
         self.chars = ""
@@ -28,7 +30,9 @@ class Word:
         self.current_page_fragments: list[Fragment] = []
         self.total_pages_fragments: list[Fragment] = []
 
-    def remove_page_number(self):
+    def _remove_page_number(
+        self
+        ) -> None:
         if self.textline is None:
             return
         if self.textline.paragraph is None:
@@ -46,17 +50,23 @@ class Word:
         if self in words_with_total_pages_fragments:
             words_with_total_pages_fragments.remove(self)
 
-    def has_current_page_fragments(self):
+    def _has_current_page_fragments(
+        self
+        ) -> bool:
         if len(self.current_page_fragments) > 0:
             return True
         return False
 
-    def has_total_pages_fragments(self):
+    def _has_total_pages_fragments(
+        self
+        ) -> bool:
         if len(self.total_pages_fragments) > 0:
             return True
         return False
 
-    def is_first_word_in_paragraph(self) -> bool:
+    def _is_first_word_in_paragraph(
+        self
+        ) -> bool:
         if self.textline is None:
             return False
         if self.textline.paragraph is None:
@@ -66,51 +76,62 @@ class Word:
         )
         return self == first_linked_paragraph.lines[0].words[0]
 
-
-    def is_last_word_in_paragraph(self) -> bool:
+    def _is_last_word_in_paragraph(
+        self
+        ) -> bool:
         if self.textline is None:
             return False
         if self.textline.paragraph is None:
             return False
         last_linked_paragraph = (
-            self.textline.paragraph._get_last_linked_paragraph()
-        )
+            self.textline.paragraph._get_last_linked_paragraph())
         return self == last_linked_paragraph.lines[-1].words[-1]
 
-    def get_paragraph(self) -> Paragraph | None:
+    def _get_paragraph(
+        self
+        ) -> Paragraph | None:
         if self.textline is None:
             return None
         return self.textline.paragraph
 
-    def remove_from_line(self):
+    def _remove_from_line(
+        self
+        ) -> None:
         if self.textline is None:
             raise ValueError("Missing textline.")
         textline = self.textline
         if self == textline.words[0]:
-            textline.set_spaces_width_when_pop_word_left(self)
+            textline._set_spaces_width_when_pop_word_left(self)
         if self == textline.words[-1]:
-            textline.set_spaces_width_when_pop_word_right(self)
-        textline.recalculate_tab_widths()
-        textline.remove_ascent(self.ascent)
-        textline.remove_height(self.height)
+            textline._set_spaces_width_when_pop_word_right(self)
+        textline._recalculate_tab_widths()
+        textline._remove_ascent(self.ascent)
+        textline._remove_height(self.height)
         textline.words.remove(self)
         textline.available_width += self.width
         if len(textline.words) == 0:
-            textline.remove_line()
+            textline._remove_line()
         self.textline = None
 
-    def get_origin_width(self) -> float:
+    def _get_origin_width(
+        self
+        ) -> float:
         width = 0.0
         for fragment in self.fragments:
             width += fragment.width
         return width
 
-    def reset_all_stats(self):
+    def _reset_all_stats(
+        self
+        ) -> None:
         self.textline = None
         if self.chars in {" ", "\t"}:
-            self.width = self.get_origin_width()
+            self.width = self._get_origin_width()
 
-    def append_height(self, height: float):
+    def _append_height(
+        self,
+        height: float
+        ) -> None:
         if height not in self.height_dict:
             self.height_dict[height] = 1
         else:
@@ -119,9 +140,12 @@ class Word:
             height_diff = height - self.height
             self.height += height_diff
             if self.textline is not None:
-                self.textline.append_height(self.height)
+                self.textline._append_height(self.height)
 
-    def append_ascent(self, ascent: float):
+    def _append_ascent(
+        self,
+        ascent: float
+        ) -> None:
         if ascent not in self.ascent_dict:
             self.ascent_dict[ascent] = 1
         else:
@@ -130,9 +154,12 @@ class Word:
             ascent_diff = ascent - self.ascent
             self.ascent += ascent_diff
             if self.textline is not None:
-                self.textline.append_ascent(self.ascent)
+                self.textline._append_ascent(self.ascent)
 
-    def remove_height(self, height: float):
+    def _remove_height(
+        self,
+        height: float
+        ) -> None:
         self.height_dict[height] -= 1
         if self.height_dict[height] > 0:
             return
@@ -148,7 +175,10 @@ class Word:
                                           "a textline.")
             # height_diff = self.height - removed_height
 
-    def remove_ascent(self, ascent: float):
+    def _remove_ascent(
+        self,
+        ascent: float
+        ) -> None:
         self.ascent_dict[ascent] -= 1
         if self.ascent_dict[ascent] > 0:
             return
@@ -164,16 +194,19 @@ class Word:
                                           "a textline.")
             # ascent_diff = self.ascent - removed_ascent
 
-    def add_fragment(self, fragment: Fragment) -> Word:
+    def _add_fragment(
+        self,
+        fragment: Fragment
+        ) -> Word:
         fragment.word = self
         if fragment.chars in {" ", "\t", "\n"}:
             self.is_extendable = False
         if fragment.chars in {"\t", "\n"}:
             self.should_render = False
         self.fragments.append(fragment)
-        self.adjust_width_by_difference(fragment.width)
-        self.append_height(fragment.height)
-        self.append_ascent(fragment.ascent)
+        self._adjust_width_by_difference(fragment.width)
+        self._append_height(fragment.height)
+        self._append_ascent(fragment.ascent)
         self.chars += fragment.chars
         if fragment.is_current_page_dummy:
             self.current_page_fragments.append(fragment)
@@ -181,16 +214,20 @@ class Word:
             self.total_pages_fragments.append(fragment)
         return self
 
-    def pop_fragment_left(self) -> Fragment:
+    def _pop_fragment_left(
+        self
+        ) -> Fragment:
         first_fragment = self.fragments.popleft()
         first_fragment.word = None
         self.chars = self.chars[len(first_fragment.chars) :]
         self.width -= first_fragment.width
-        self.remove_height(first_fragment.height)
-        self.remove_ascent(first_fragment.ascent)
+        self._remove_height(first_fragment.height)
+        self._remove_ascent(first_fragment.ascent)
         return first_fragment
 
-    def extend_right(self):
+    def _extend_right(
+        self
+        ) -> None:
         if self.next_word is None:
             return
         if self.next_word.is_extendable is False:
@@ -223,7 +260,9 @@ class Word:
         if self.textline is not None:
             self.textline.words.remove(word_to_remove)
 
-    def extend_left(self):
+    def _extend_left(
+        self
+        ) -> None:
         if self.prev_word is None:
             return
         if self.prev_word.is_extendable is False:
@@ -255,7 +294,9 @@ class Word:
         if self.textline is not None:
             self.textline.words.remove(word_to_remove)
 
-    def calculate_tab_width(self) -> float:
+    def _calculate_tab_width(
+        self
+        ) -> float:
         tab_size: float = 0.0
         if (self.textline is not None
                 and self.textline.paragraph is not None
@@ -272,12 +313,17 @@ class Word:
             word = word.prev_word
         return tab_size - (width % tab_size)
 
-    def adjust_width_by_difference(self, width_diff: float):
+    def _adjust_width_by_difference(
+        self,
+        width_diff: float
+        ) -> None:
         self.width += width_diff
         if self.textline is not None:
             self.textline.width += width_diff
             self.textline.available_width -= width_diff
-            self.textline.recalculate_tab_widths()
+            self.textline._recalculate_tab_widths()
 
-    def calc_width_with_justify(self):
+    def _calc_width_with_justify(
+        self
+        ) -> float:
         return self.width + self.justify_space
