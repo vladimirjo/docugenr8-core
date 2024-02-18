@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 # example_pkg = ["*.json"]
 
 [project]
-name = "docugenr8"
+name = "docugenr8-core"
 authors = [{ name = "Vladimir Jovanovic", email = "vladimirjo@protonmail.com" }]
 description = "Python library for generating PDF files"
 readme = "README.md"
@@ -120,6 +120,10 @@ ignore = [
     "COM812",
     "PLW1641",
     "N999",
+    "PLR0913",
+    "PLR0917",
+    "PLR0904",
+    "SLF001"
 ]
 fixable = [
     "W",
