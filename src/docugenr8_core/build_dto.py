@@ -149,9 +149,12 @@ def _generate_dto_paragraph(
                                         / (num_of_lines_in_paragraph - 1))
         if line == paragraph.lines[0]:
             x_offset = (x
+                        + dto_paragraph.left_indent
                         + dto_paragraph.first_line_indent)
         else:
-            x_offset = x + dto_paragraph.left_indent
+            x_offset = (x
+                        + dto_paragraph.left_indent
+                        + dto_paragraph.hanging_indent)
         dto_text_line = _generate_dto_text_line(
             x_offset,
             y,
