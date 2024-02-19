@@ -319,7 +319,6 @@ class Word:
         ) -> None:
         self.width += width_diff
         if self.textline is not None:
-            self.textline.width += width_diff
             self.textline.available_width -= width_diff
             self.textline._recalculate_tab_widths()
 

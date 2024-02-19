@@ -41,7 +41,7 @@ def _generate_dto_word(
     dto_word.width = word.width
     dto_word.height = word.height
     dto_word.baseline = y + word.ascent
-    dto_word.justify_padding_after = word.justify_space
+    dto_word.justify_space = word.justify_space
     for fragment in word.fragments:
         dto_fragment = _generate_dto_fragment(
             x,
@@ -73,6 +73,7 @@ def _generate_dto_text_line(
     dto_text_line.space_after = text_line.leading
     dto_text_line.paragraph_h_align = dto_paragraph.h_align
     x_offset = 0.0
+    # justify_spacing = 0.0
     match dto_text_line.paragraph_h_align:
         case "left":
             pass
@@ -81,21 +82,31 @@ def _generate_dto_text_line(
         case "center":
             x_offset = (text_line.available_width) / 2
         case "justify":
-            if len(text_line.inner_spaces) > 0:
-                justify_spacing = (
+            if (len(text_line.inner_spaces) > 0
+                    and not text_line._is_last_line_in_paragraph()):
+                justify_space = (
                     text_line.available_width) / len(text_line.inner_spaces)
-                if justify_spacing > 0:
+                if justify_space > 0:
                     for inner_space in text_line.inner_spaces:
-                        inner_space.justify_space = justify_spacing
+                        inner_space.justify_space = justify_space
     x += x_offset
     for word in text_line.words:
+        # if (word in text_line.inner_spaces
+        #         and not text_line._is_last_line_in_paragraph()):
+        #     x += justify_spacing / 2
         dto_word = _generate_dto_word(
             x,
             y + (text_line.ascent - word.ascent),
             dto_text_line,
             word)
         dto_text_line.words.append(dto_word)
-        x += dto_word.width + dto_word.justify_padding_after
+        # if (word in text_line.inner_spaces
+        #         and not text_line._is_last_line_in_paragraph()):
+        #     x += justify_spacing / 2
+        # if text_line._is_last_line_in_paragraph():
+        #     x += dto_word.width
+        # else:
+        x += dto_word.width + dto_word.justify_space
     # y += dto_text_line.height
     # y += dto_text_line.space_after
     # y += dto_text_line.justify_padding_after

@@ -59,8 +59,7 @@ class Document:
                         content._build_current_page_fragments(page_number + 1)
                         content._build_total_pages_fragments(len(self.pages))
                         dto_page.contents.append(
-                            _generate_dto_text_area(content)
-                            )
+                            _generate_dto_text_area(content))
                     case _:
                         raise TypeError("Invalid content type.")
         return dto
