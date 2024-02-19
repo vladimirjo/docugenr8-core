@@ -116,7 +116,8 @@ class Paragraph:
         self,
         word: Word
         ) -> None:
-        self._generate_textline()
+        if len(self.lines) == 0:
+            self._generate_textline()
         if word.chars == "\n":
             self.ends_with_br = True
         self.lines[0]._append_word_left(word)
@@ -125,7 +126,8 @@ class Paragraph:
         self,
         word: Word
         ) -> None:
-        self._generate_textline()
+        if len(self.lines) == 0:
+            self._generate_textline()
         if word.chars == "\n":
             self.ends_with_br = True
         last_line = self.lines[-1]
@@ -135,12 +137,30 @@ class Paragraph:
     def _generate_textline(
         self
         ) -> None:
-        if len(self.lines) != 0:
-            return
-        if self.prev_linked_paragraph is None:
-            self.lines.append(TextLine(self, self.first_line_indent))
+        textline = TextLine(self)
+        if len(self.lines) > 0:
+            textline.prev_line = self.lines[-1]
+            self.lines[-1].next_line = textline
+        if len(self.lines) == 0:
+            if self.prev_linked_paragraph is not None:
+                textline._set_width_and_available_space(
+                    self.width
+                    - self.left_indent
+                    - self.hanging_indent
+                    - self.right_indent)
+            else:
+                textline._set_width_and_available_space(
+                    self.width
+                    - self.left_indent
+                    - self.first_line_indent
+                    - self.right_indent)
         else:
-            self.lines.append(TextLine(self, self.left_indent))
+            textline._set_width_and_available_space(
+                    self.width
+                    - self.left_indent
+                    - self.hanging_indent
+                    - self.right_indent)
+        self.lines.append(textline)
 
     def _pop_word_front_from_paragraph(
         self
@@ -152,12 +172,12 @@ class Paragraph:
         ) -> Word:
         return self.lines[-1]._pop_word_right()
 
-    def _set_paragraph_width(
-        self,
-        width: float
-        ) -> None:
-        width_diff = width - self.width
-        self.width += width_diff
-        for line in self.lines:
-            line._set_width_and_available_width()
-        self._reallocate_words_in_paragraph()
+    # def _set_paragraph_width(
+    #     self,
+    #     width: float
+    #     ) -> None:
+    #     width_diff = width - self.width
+    #     self.width += width_diff
+    #     for line in self.lines:
+    #         line._set_width_and_available_width()
+    #     self._reallocate_words_in_paragraph()

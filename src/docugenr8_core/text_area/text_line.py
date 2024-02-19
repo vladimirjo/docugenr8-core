@@ -14,13 +14,10 @@ class TextLine:
     def __init__(
         self,
         paragraph: None | Paragraph = None,
-        left_indent: float = 0.0
         ) -> None:
         self.paragraph = paragraph
-        self.left_indent = left_indent
         self.width = 0.0
         self.available_width = 0.0
-        self._set_width_and_available_width()
         if self.paragraph is not None:
             self.h_align = self.paragraph.h_align
         else:
@@ -205,12 +202,11 @@ class TextLine:
         if self.next_line is None:
             if self.paragraph is None:
                 raise TypeError("Paragraph object is missing.")
-            line = TextLine(self.paragraph, self.paragraph.left_indent)
-            line.prev_line = self
-            self.next_line = line
-            self.paragraph.lines.append(line)
+            self.paragraph._generate_textline()
             leading_diff = self._set_leading()
             self.paragraph._change_height(leading_diff)
+        if self.next_line is None:
+            raise ValueError("Next line is missing after generating new line.")
         self.next_line._append_word_left(word)
 
     def _move_first_word_from_next_line(
@@ -445,22 +441,6 @@ class TextLine:
         self.paragraph._change_height(-height_to_remove)
         self.paragraph = None
 
-    def _calc_line_width(
-        self
-        ) -> float:
-        if self.paragraph is None:
-            raise TypeError("Paragraph object is missing.")
-        return (self.paragraph.width
-                - self.left_indent
-                - self.paragraph.right_indent)
-
-    def _set_width_and_available_width(
-        self
-        ) -> None:
-        width_diff = self._calc_line_width() - self.width
-        self.width += width_diff
-        self.available_width += width_diff
-
     def _calc_tab_width(
         self,
         word: Word
@@ -501,3 +481,10 @@ class TextLine:
         leading_diff = self._calc_leading() - self.leading
         self.leading += leading_diff
         return leading_diff
+
+    def _set_width_and_available_space(
+        self,
+        width: float) -> None:
+        width_diff = width - self.width
+        self.width += width_diff
+        self.available_width += width_diff
