@@ -16,8 +16,6 @@ from .paragraph import Paragraph
 from .word import Word
 
 
-ZERO_WIDTH = 0.0
-
 class TextArea:
     def __init__(
         self,
@@ -38,11 +36,12 @@ class TextArea:
         self.paragraphs: deque[Paragraph] = deque()
         self.buffer: deque[Word] = deque()
         self.next_textarea: None | TextArea = None
+        self.prev_textarea: None | TextArea = None
         self.accepts_additional_words: bool = True
 
         # late binding when adding text
         self.current_font: None | Font = None
-        self.current_font_size: float = ZERO_WIDTH
+        self.current_font_size: float = 0
         self.current_font_color: tuple[int, int, int] = (0, 0, 0)
 
         # words to fill in with page numbers
@@ -53,13 +52,21 @@ class TextArea:
         self,
         unicode_text: str,
     ) -> None:
-        self._get_font_attributes_from_document_settings()
+        self._save_font_attributes_from_document_settings()
         words = self._create_words(unicode_text)
         self._establish_link_with_last_word(words[0])
         self._insert_words_into_buffer(words)
-        self._transfer_words_from_buffer_to_textarea()
+        self._move_words_in_all_linked_areas()
 
-    def _get_font_attributes_from_document_settings(
+    def _move_words_in_all_linked_areas(
+        self
+        ) -> None:
+        textarea = self._get_the_first_textarea_to_accept_words()
+        if textarea is None:
+            return
+        textarea._move_words_between_areas()
+
+    def _save_font_attributes_from_document_settings(
         self
         ) -> None:
         if self.document is not None:
@@ -78,14 +85,6 @@ class TextArea:
         ) -> None:
         buffer = self._get_buffer()
         buffer.extend(words)
-
-    def _transfer_words_from_buffer_to_textarea(
-        self
-        ) -> None:
-        textarea = self._get_the_first_textarea_to_accept_words()
-        if textarea is None:
-            return
-        textarea._pull_and_push_words_to_available_space()
 
     def _create_words(
         self,
@@ -322,35 +321,59 @@ class TextArea:
                 return None
         return current_textarea
 
-    def _pull_and_push_words_to_available_space(
+    def _distrubute_words_in_all_paragraphs(
         self
         ) -> None:
-        if self.available_height > ZERO_WIDTH:
+        for paragraph in self.paragraphs:
+            paragraph._distribute_words_in_lines()
+
+    def _move_words_between_areas(
+        self
+        ) -> None:
+        if self.available_height > 0:
             self._pull_next_available_word()
-        if self.available_height < ZERO_WIDTH:
+        if self.available_height < 0:
             self.accepts_additional_words = False
             self._push_excess_words_to_next_available_place()
 
     def _pull_next_available_word(
         self
         ) -> None:
-        while self.available_height >= ZERO_WIDTH:
-            next_word = self._get_next_word()
+        while self.available_height >= 0:
+            next_word = self._get_next_available_word()
             if next_word is None:
                 return
-            if next_word._has_current_page_fragments():
-                self.words_with_current_page_fragments.append(next_word)
-            if next_word._has_total_pages_fragments():
-                self.words_with_total_pages_fragments.append(next_word)
-            self._generate_paragraph_when_pulling_words(next_word)
+            self._create_paragraph_if_needed_for_incoming_word(next_word)
             self._remove_word(next_word)
-            self.paragraphs[-1]._append_word_right(next_word)
+            self._append_word_to_area(next_word)
+
+    def _create_paragraph_if_needed_for_incoming_word(
+        self,
+        word: Word
+        ) -> None:
+        paragraph = word._get_paragraph()
+        if paragraph is None:
+            self._generate_paragraph_from_buffer(word)
+        else:
+            self._generate_paragraph_from_text_area(
+                word,
+                paragraph)
+
+    def _append_word_to_area(
+        self,
+        word: Word
+        ) -> None:
+        if word._has_current_page_fragments():
+            self.words_with_current_page_fragments.append(word)
+        if word._has_total_pages_fragments():
+            self.words_with_total_pages_fragments.append(word)
+        self.paragraphs[-1]._append_word_right(word)
 
     def _push_excess_words_to_next_available_place(
         self
         ) -> deque[Word] | None:
         textline_to_push = self.paragraphs[-1].lines[-1]
-        while self.available_height < ZERO_WIDTH:
+        while self.available_height < 0:
             if self.next_textarea is not None:
                 self.next_textarea._generate_paragraph_when_pushing_words(
                     textline_to_push
@@ -365,35 +388,46 @@ class TextArea:
                 return
             textline_to_push = self.paragraphs[-1].lines[-1]
         if self.next_textarea is not None:
-            self.next_textarea._pull_and_push_words_to_available_space()
+            self.next_textarea._move_words_between_areas()
 
-    def _generate_paragraph_when_pulling_words(
+    def _generate_paragraph_from_buffer(
         self,
-        next_word: Word
-        ) -> None:
-        next_paragraph = next_word._get_paragraph()
-        if next_paragraph is None:
-            if len(self.paragraphs) == 0:
-                self.paragraphs.append(Paragraph(self))
-            if self.paragraphs[-1].ends_with_br is True:
-                self.paragraphs.append(Paragraph(self))
-            return
-        if next_word._is_first_word_in_paragraph():
-            if next_word.textline is not None:
-                next_word.textline._set_non_first_left_indent()
+        word: Word,
+    ) -> None:
+        if len(self.paragraphs) == 0:
             paragraph = Paragraph(self)
             self.paragraphs.append(paragraph)
-            paragraph._copy_paragraph_parameters_from(next_paragraph)
-            paragraph.next_linked_paragraph = next_paragraph
-            next_paragraph.prev_linked_paragraph = paragraph
+            if word.prev_word is not None:
+                prev_paragraph = word.prev_word._get_paragraph()
+                paragraph.prev_linked_paragraph = prev_paragraph
+                if prev_paragraph is not None:
+                    prev_paragraph.next_linked_paragraph = paragraph
+                    paragraph._copy_paragraph_parameters_from(prev_paragraph)
+        if self.paragraphs[-1].ends_with_br:
+            paragraph = Paragraph(self)
+            self.paragraphs.append(paragraph)
+
+    def _generate_paragraph_from_text_area(
+        self,
+        word: Word,
+        paragraph: Paragraph
+        ) -> None:
+        if word._is_first_word_in_paragraph():
+            if word.textline is not None:
+                paragraph._set_non_first_line_indent(word.textline)
+            new_paragraph = Paragraph(self)
+            self.paragraphs.append(new_paragraph)
+            new_paragraph._copy_paragraph_parameters_from(paragraph)
+            new_paragraph.next_linked_paragraph = paragraph
+            paragraph.prev_linked_paragraph = new_paragraph
             return
-        if next_word._is_last_word_in_paragraph():
+        if word._is_last_word_in_paragraph():
             self.paragraphs[-1].next_linked_paragraph = None
-            next_paragraph.prev_linked_paragraph = None
+            paragraph.prev_linked_paragraph = None
             return
-        if self.paragraphs[-1].next_linked_paragraph != next_paragraph:
-            self.paragraphs[-1].next_linked_paragraph = next_paragraph
-            next_paragraph.prev_linked_paragraph = self.paragraphs[-1]
+        if self.paragraphs[-1].next_linked_paragraph != paragraph:
+            self.paragraphs[-1].next_linked_paragraph = paragraph
+            paragraph.prev_linked_paragraph = self.paragraphs[-1]
             return
 
     def _generate_paragraph_when_pushing_words(
@@ -402,8 +436,7 @@ class TextArea:
     ) -> None:
         if (
             len(self.paragraphs) == 0
-            and textline_to_push._is_first_line_in_paragraph()
-        ):
+            and textline_to_push._is_first_line_in_paragraph()):
             new_paragraph = Paragraph(self)
             self.paragraphs.append(new_paragraph)
             if textline_to_push.paragraph is not None:
@@ -412,13 +445,12 @@ class TextArea:
         if (
             len(self.paragraphs) == 0
             and not textline_to_push._is_first_line_in_paragraph()
-        ):
+            ):
             new_paragraph = Paragraph(self)
             self.paragraphs.append(new_paragraph)
             if textline_to_push.paragraph is not None:
                 new_paragraph._copy_paragraph_parameters_from(
-                    textline_to_push.paragraph
-                )
+                    textline_to_push.paragraph)
             new_paragraph.prev_linked_paragraph = textline_to_push.paragraph
             if textline_to_push.paragraph is not None:
                 textline_to_push.paragraph.next_linked_paragraph = new_paragraph
@@ -428,8 +460,7 @@ class TextArea:
             self.paragraphs.appendleft(new_paragraph)
             if textline_to_push.paragraph is not None:
                 new_paragraph._copy_paragraph_parameters_from(
-                    textline_to_push.paragraph
-                )
+                    textline_to_push.paragraph)
             new_paragraph.prev_linked_paragraph = textline_to_push.paragraph
             if textline_to_push.paragraph is not None:
                 textline_to_push.paragraph.next_linked_paragraph = new_paragraph
@@ -440,13 +471,13 @@ class TextArea:
 
     def _remove_word(
         self,
-        next_word: Word
+        word: Word
         ) -> None:
-        if next_word.textline is None:
-            self._get_buffer().remove(next_word)
+        if word.textline is None:
+            self._get_buffer().remove(word)
         else:
-            next_word._remove_page_number()
-            next_word._remove_from_line()
+            word._remove_page_number()
+            word._remove_from_line()
 
     def _add_words_front_to_textarea(
         self,
@@ -455,9 +486,9 @@ class TextArea:
         while len(words) > 0:
             word = words.popleft()
             self.paragraphs[0]._append_word_left(word)
-        self.paragraphs[0]._reallocate_words_in_paragraph()
+        self.paragraphs[0]._distribute_words_in_lines()
 
-    def _get_next_word(
+    def _get_next_available_word(
         self
         ) -> Word | None:
         """gets the next word from either next paragraph if there is one,
@@ -514,9 +545,9 @@ class TextArea:
                     and fragment.word.textline.paragraph is not None
                     and fragment.word.textline.paragraph.textarea is not None):
                     paragraph = fragment.word.textline.paragraph
-                    paragraph._reallocate_words_in_paragraph()
+                    paragraph._distribute_words_in_lines()
                     textarea = fragment.word.textline.paragraph.textarea
-                    textarea._pull_and_push_words_to_available_space()
+                    textarea._move_words_between_areas()
 
     def _build_total_pages_fragments(
         self,
@@ -540,6 +571,27 @@ class TextArea:
                     and fragment.word.textline.paragraph is not None
                     and fragment.word.textline.paragraph.textarea is not None):
                     paragraph = fragment.word.textline.paragraph
-                    paragraph._reallocate_words_in_paragraph()
+                    paragraph._distribute_words_in_lines()
                     textarea = fragment.word.textline.paragraph.textarea
-                    textarea._pull_and_push_words_to_available_space()
+                    textarea._move_words_between_areas()
+
+    def link_textarea(
+        self,
+        next_textarea: TextArea
+        ) -> None:
+        last_textarea = self
+        while last_textarea.next_textarea is not None:
+            last_textarea = last_textarea.next_textarea
+        last_textarea.next_textarea = next_textarea
+        next_textarea.buffer = last_textarea.buffer
+        last_textarea.buffer = deque()
+        self._move_words_in_all_linked_areas()
+
+    def set_width(
+        self,
+        new_width: float
+        ) -> None:
+        self.width = new_width
+        for paragraph in self.paragraphs:
+            paragraph._set_paragraph_width(new_width)
+        self._move_words_in_all_linked_areas()

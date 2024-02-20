@@ -94,14 +94,14 @@ class Paragraph:
             chars += line._get_chars()
         return chars
 
-    def _reallocate_words_in_paragraph(
+    def _distribute_words_in_lines(
         self
         ) -> None:
         if len(self.lines) == 0:
             return
         line = self.lines[0]
         while line is not None and line.next_line is not None:
-            line._reallocate_words_in_line()
+            line._adjust_words_between_lines()
             line = line.next_line
 
     def _change_height(
@@ -132,7 +132,7 @@ class Paragraph:
             self.ends_with_br = True
         last_line = self.lines[-1]
         last_line._append_word_right(word)
-        last_line._reallocate_words_in_line()
+        last_line._adjust_words_between_lines()
 
     def _generate_textline(
         self
@@ -141,26 +141,37 @@ class Paragraph:
         if len(self.lines) > 0:
             textline.prev_line = self.lines[-1]
             self.lines[-1].next_line = textline
-        if len(self.lines) == 0:
-            if self.prev_linked_paragraph is not None:
-                textline._set_width_and_available_space(
-                    self.width
-                    - self.left_indent
-                    - self.hanging_indent
-                    - self.right_indent)
-            else:
-                textline._set_width_and_available_space(
-                    self.width
-                    - self.left_indent
-                    - self.first_line_indent
-                    - self.right_indent)
+        paragraph = self._get_first_linked_paragraph()
+        if len(paragraph.lines) == 0:
+            textline._set_width_and_available_space(
+                self.width
+                - self.left_indent
+                - self.first_line_indent
+                - self.right_indent)
         else:
             textline._set_width_and_available_space(
-                    self.width
-                    - self.left_indent
-                    - self.hanging_indent
-                    - self.right_indent)
+                self.width
+                - self.left_indent
+                - self.hanging_indent
+                - self.right_indent)
         self.lines.append(textline)
+
+    def _set_non_first_line_indent(
+        self,
+        textline: TextLine) -> None:
+        textline._set_width_and_available_space(
+            self.width
+            - self.left_indent
+            - self.hanging_indent
+            - self.right_indent)
+
+    def _set_first_line_indent(self,
+        textline: TextLine) -> None:
+        textline._set_width_and_available_space(
+            self.width
+            - self.left_indent
+            - self.first_line_indent
+            - self.right_indent)
 
     def _pop_word_front_from_paragraph(
         self
@@ -172,12 +183,16 @@ class Paragraph:
         ) -> Word:
         return self.lines[-1]._pop_word_right()
 
-    # def _set_paragraph_width(
-    #     self,
-    #     width: float
-    #     ) -> None:
-    #     width_diff = width - self.width
-    #     self.width += width_diff
-    #     for line in self.lines:
-    #         line._set_width_and_available_width()
-    #     self._reallocate_words_in_paragraph()
+    def _set_paragraph_width(
+        self,
+        new_width: float
+        ) -> None:
+        width_diff = new_width - self.width
+        self.width += width_diff
+        for line in self.lines:
+            line._set_width_and_available_space(new_width)
+            if line is self.lines[0]:
+                self._set_first_line_indent(line)
+            else:
+                self._set_non_first_line_indent(line)
+        self._distribute_words_in_lines()

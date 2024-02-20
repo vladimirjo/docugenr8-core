@@ -69,6 +69,8 @@ class TextLine:
         # spaces at the start of a word will not be included in justifying
         if spaces[0] == self.words[0]:
             for space in spaces:
+                self.available_width += space.width
+                space.width = 0.0
                 self.inner_spaces.remove(space)
         return
 
@@ -156,6 +158,8 @@ class TextLine:
         word = Word()
         textline = self.words[-1].textline
         first_fragment = self.words[-1].fragments[0]
+        assert first_fragment.width < self.width, (
+            "Fragment width exceeds text line width.")
         while word.width + first_fragment.width <= self.width:
             fragment = self.words[-1]._pop_fragment_left()
             word._add_fragment(fragment)
@@ -169,7 +173,7 @@ class TextLine:
         self.words[-1].prev_word = word
         self.words.appendleft(word)
 
-    def _can__move_first_word_from_next_line(
+    def _can_move_first_word_from_next_line(
         self
         ) -> bool:
         if self.next_line is None:
@@ -312,26 +316,6 @@ class TextLine:
         last_linked_paragraph = self.paragraph._get_last_linked_paragraph()
         return self == last_linked_paragraph.lines[-1]
 
-    def _set_non_first_left_indent(
-        self
-        ) -> None:
-        if self.paragraph is None:
-            return
-        width_diff = self.left_indent - self.paragraph.left_indent
-        self.left_indent = self.paragraph.left_indent
-        self.available_width += width_diff
-        self.width += width_diff
-
-    def _set_first_left_indent(
-        self
-        ) -> None:
-        if self.paragraph is None:
-            return
-        width_diff = self.paragraph.first_line_indent - self.left_indent
-        self.left_indent = self.paragraph.first_line_indent
-        self.available_width -= width_diff
-        self.width -= width_diff
-
     def _get_chars(
         self
         ) -> str:
@@ -340,14 +324,14 @@ class TextLine:
             chars += word.chars
         return chars
 
-    def _reallocate_words_in_line(
+    def _adjust_words_between_lines(
         self
         ) -> None:
         while self.available_width < 0.0:  # noqa: PLR2004
-            if len(self.words) == 1:
-                self._split_word()
+            # if len(self.words) == 1:
+            #     self._split_word()
             self._move_last_word_to_next_line()
-        while self._can__move_first_word_from_next_line():
+        while self._can_move_first_word_from_next_line():
             self._move_first_word_from_next_line()
 
     def _append_height(

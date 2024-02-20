@@ -147,7 +147,7 @@ def _generate_dto_paragraph(
             else:
                 line_justify_padding = (height_diff
                                         / (num_of_lines_in_paragraph - 1))
-        if line == paragraph.lines[0]:
+        if line._is_first_line_in_paragraph():
             x_offset = (x
                         + dto_paragraph.left_indent
                         + dto_paragraph.first_line_indent)
