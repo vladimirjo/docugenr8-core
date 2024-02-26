@@ -22,13 +22,13 @@ def _generate_dto_fragment(
         y,
         dto_word
     )
-    dto_fragment.width = fragment.width
-    dto_fragment.height = fragment.height
-    dto_fragment.baseline = y + fragment.ascent
-    dto_fragment.chars = fragment.chars
-    dto_fragment.font_name = fragment.font_name
-    dto_fragment.font_size = fragment.font_size
-    dto_fragment.font_color = fragment.font_color
+    dto_fragment.width = fragment._width
+    dto_fragment.height = fragment._height
+    dto_fragment.baseline = y + fragment._ascent
+    dto_fragment.chars = fragment._chars
+    dto_fragment.font_name = fragment._font_name
+    dto_fragment.font_size = fragment._font_size
+    dto_fragment.font_color = fragment._font_color
     return dto_fragment
 
 def _generate_dto_word(
@@ -38,14 +38,14 @@ def _generate_dto_word(
     word: Word,
     ) -> DtoWord:
     dto_word = DtoWord(x, y, dto_text_line)
-    dto_word.width = word.width
-    dto_word.height = word.height
-    dto_word.baseline = y + word.ascent
-    dto_word.justify_space = word.justify_space
-    for fragment in word.fragments:
+    dto_word.width = word._width
+    dto_word.height = word._height
+    dto_word.baseline = y + word._ascent
+    dto_word.justify_space = word._justify_space
+    for fragment in word._fragments:
         dto_fragment = _generate_dto_fragment(
             x,
-            y + (word.ascent - fragment.ascent),
+            y + (word._ascent - fragment._ascent),
             dto_word,
             fragment)
         dto_word.fragments.append(dto_fragment)
@@ -67,10 +67,10 @@ def _generate_dto_text_line(
         dto_paragraph,
         justify_padding_after
     )
-    dto_text_line.width = text_line.width
-    dto_text_line.height = text_line.height
-    dto_text_line.baseline = y + text_line.ascent
-    dto_text_line.space_after = text_line.leading
+    dto_text_line.width = text_line._width
+    dto_text_line.height = text_line._height
+    dto_text_line.baseline = y + text_line._ascent
+    dto_text_line.space_after = text_line._leading
     dto_text_line.paragraph_h_align = dto_paragraph.h_align
     x_offset = 0.0
     # justify_spacing = 0.0
@@ -78,25 +78,25 @@ def _generate_dto_text_line(
         case "left":
             pass
         case "right":
-            x_offset = text_line.available_width
+            x_offset = text_line._available_width
         case "center":
-            x_offset = (text_line.available_width) / 2
+            x_offset = (text_line._available_width) / 2
         case "justify":
-            if (len(text_line.inner_spaces) > 0
+            if (len(text_line._inner_spaces) > 0
                     and not text_line._is_last_line_in_paragraph()):
                 justify_space = (
-                    text_line.available_width) / len(text_line.inner_spaces)
+                    text_line._available_width) / len(text_line._inner_spaces)
                 if justify_space > 0:
-                    for inner_space in text_line.inner_spaces:
-                        inner_space.justify_space = justify_space
+                    for inner_space in text_line._inner_spaces:
+                        inner_space._justify_space = justify_space
     x += x_offset
-    for word in text_line.words:
+    for word in text_line._words:
         # if (word in text_line.inner_spaces
         #         and not text_line._is_last_line_in_paragraph()):
         #     x += justify_spacing / 2
         dto_word = _generate_dto_word(
             x,
-            y + (text_line.ascent - word.ascent),
+            y + (text_line._ascent - word._ascent),
             dto_text_line,
             word)
         dto_text_line.words.append(dto_word)
@@ -104,7 +104,7 @@ def _generate_dto_text_line(
         #         and not text_line._is_last_line_in_paragraph()):
         #     x += justify_spacing / 2
         # if text_line._is_last_line_in_paragraph():
-        #     x += dto_word.width
+        #     x += dto_word._width
         # else:
         x += dto_word.width + dto_word.justify_space
     # y += dto_text_line.height
@@ -124,21 +124,21 @@ def _generate_dto_paragraph(
         x,
         y,
         dto_text_area)
-    dto_paragraph.width = paragraph.width
-    dto_paragraph.height = paragraph.height
+    dto_paragraph.width = paragraph._width
+    dto_paragraph.height = paragraph._height
     dto_paragraph.chars = paragraph._get_chars()
-    dto_paragraph.tab_size = paragraph.tab_size
-    dto_paragraph.line_height_ratio = paragraph.line_height_ratio
-    dto_paragraph.first_line_indent = paragraph.first_line_indent
-    dto_paragraph.hanging_indent = paragraph.hanging_indent
-    dto_paragraph.left_indent = paragraph.left_indent
-    dto_paragraph.right_indent = paragraph.right_indent
-    dto_paragraph.space_before = paragraph.space_before
-    dto_paragraph.space_after = paragraph.space_after
-    dto_paragraph.h_align = paragraph.h_align
-    num_of_lines_in_paragraph = len(paragraph.lines)
+    dto_paragraph.tab_size = paragraph._tab_size
+    dto_paragraph.line_height_ratio = paragraph._line_height_ratio
+    dto_paragraph.first_line_indent = paragraph._first_line_indent
+    dto_paragraph.hanging_indent = paragraph._hanging_indent
+    dto_paragraph.left_indent = paragraph._left_indent
+    dto_paragraph.right_indent = paragraph._right_indent
+    dto_paragraph.space_before = paragraph._space_before
+    dto_paragraph.space_after = paragraph._space_after
+    dto_paragraph.h_align = paragraph._h_align
+    num_of_lines_in_paragraph = len(paragraph._textlines)
     y += dto_paragraph.space_before
-    for line in paragraph.lines:
+    for line in paragraph._textlines:
         line_justify_padding = 0.0
         if should_distrubute_space_in_lines:
             if not last_paragraph:
@@ -178,51 +178,52 @@ def _generate_dto_text_area(
     should_distrubute_space_in_lines: bool = False
     num_of_lines_in_text_area: int = 0
     # ******************************
-    match text_area.v_align:
+    match text_area._v_align:
         case "top":
             pass
         case "bottom":
-            y_offset += text_area.available_height
+            y_offset += text_area._available_height
         case "center":
-            y_offset += text_area.available_height / 2
+            y_offset += text_area._available_height / 2
         case "justify-paragraphs":
-            between_paragraphs_padding = (text_area.available_height
-                                    / (len(text_area.paragraphs) - 1))
+            between_paragraphs_padding = (text_area._available_height
+                                    / (len(text_area._paragraphs) - 1))
         case "justify-lines":
             should_distrubute_space_in_lines = True
-            for paragraph in text_area.paragraphs:
-                num_of_lines_in_text_area += len(paragraph.lines)
+            for paragraph in text_area._paragraphs:
+                num_of_lines_in_text_area += len(paragraph._textlines)
         case _:
             raise ValueError("Invalid value for vertical alignment.")
     # ******************************
     dto_text_area = DtoTextArea(
-        text_area.x,
-        text_area.y,
-        text_area.width,
-        text_area.height
+        text_area._x,
+        text_area._y,
+        text_area._width,
+        text_area._height
     )
-    dto_text_area.height_empty_space = text_area.available_height
-    dto_text_area.v_align = text_area.v_align
+    dto_text_area.height_empty_space = text_area._available_height
+    dto_text_area.v_align = text_area._v_align
 
-    y = text_area.y + y_offset
-    for paragraph in text_area.paragraphs:
+    y = text_area._y + y_offset
+    for paragraph in text_area._paragraphs:
         height_diff = 0.0
         last_paragraph = False
         if should_distrubute_space_in_lines:
-            if paragraph != text_area.paragraphs[-1]:
+            if paragraph != text_area._paragraphs[-1]:
                 height_diff = (
-                    (len(paragraph.lines) / num_of_lines_in_text_area)
-                        * text_area.available_height
+                    (len(paragraph._textlines) / num_of_lines_in_text_area)
+                        * text_area._available_height
                     )
             else:
                 height_diff = (
-                    ((len(paragraph.lines) - 1) / num_of_lines_in_text_area)
-                        * text_area.available_height
+                    ((len(paragraph._textlines) - 1)
+                        / num_of_lines_in_text_area)
+                            * text_area._available_height
                     )
                 last_paragraph = True
         # ******************************
         dto_paragraph = _generate_dto_paragraph(
-                text_area.x,
+                text_area._x,
                 y,
                 paragraph,
                 dto_text_area,
@@ -233,6 +234,6 @@ def _generate_dto_text_area(
         dto_text_area.paragraphs.append(dto_paragraph)
         # ******************************
         y += dto_paragraph.height
-        if paragraph != text_area.paragraphs[-1]:
+        if paragraph != text_area._paragraphs[-1]:
             y += between_paragraphs_padding
     return dto_text_area

@@ -25,28 +25,28 @@ class TextArea:
         height: float,
         document: Document,
     ) -> None:
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.document = document
-        self.v_align = document.settings.text_v_align
-        self.h_align = document.settings.text_h_align
-        self.available_height = height
-        self.paragraphs: deque[Paragraph] = deque()
-        self.buffer: deque[Word] = deque()
-        self.next_textarea: None | TextArea = None
-        self.prev_textarea: None | TextArea = None
-        self.accepts_additional_words: bool = True
+        self._x = x
+        self._y = y
+        self._width = width
+        self._height = height
+        self._document = document
+        self._v_align = document.settings.text_v_align
+        self._h_align = document.settings.text_h_align
+        self._available_height = height
+        self._paragraphs: deque[Paragraph] = deque()
+        self._buffer: deque[Word] = deque()
+        self._next_textarea: None | TextArea = None
+        self._prev_textarea: None | TextArea = None
+        self._accepts_additional_words: bool = True
 
         # late binding when adding text
-        self.current_font: None | Font = None
-        self.current_font_size: float = 0
-        self.current_font_color: tuple[int, int, int] = (0, 0, 0)
+        self._current_font: None | Font = None
+        self._current_font_size: float = 0
+        self._current_font_color: tuple[int, int, int] = (0, 0, 0)
 
         # words to fill in with page numbers
-        self.words_with_current_page_fragments: list[Word] = []
-        self.words_with_total_pages_fragments: list[Word] = []
+        self._words_with_current_page_fragments: list[Word] = []
+        self._words_with_total_pages_fragments: list[Word] = []
 
     def add_text(
         self,
@@ -69,14 +69,14 @@ class TextArea:
     def _save_font_attributes_from_document_settings(
         self
         ) -> None:
-        if self.document is not None:
-            font_name = self.document.settings.font_current
+        if self._document is not None:
+            font_name = self._document.settings.font_current
             if font_name is None:
                 raise TypeError("Current name of a font must be set.")
-            self.current_font = self.document.fonts[font_name]
-            self.current_font_size = self.document.settings.font_size
-            self.current_font_color = self.document.settings.font_color
-        if self.current_font is None:
+            self._current_font = self._document.fonts[font_name]
+            self._current_font_size = self._document.settings.font_size
+            self._current_font_color = self._document.settings.font_color
+        if self._current_font is None:
             raise TypeError("The font object is missing.")
 
     def _insert_words_into_buffer(
@@ -95,24 +95,24 @@ class TextArea:
         while char_idx < len(unicode_text):
             (fragment, increment) = self._generate_fragment_with_increment(
                 unicode_text, char_idx)
-            if fragment.chars in {"\n", "\t", " "}:
+            if fragment._chars in {"\n", "\t", " "}:
                 word = Word()
                 word._add_fragment(fragment)
                 if len(words) > 0:
-                    word.prev_word = words[-1]
-                    words[-1].next_word = word
+                    word._prev_word = words[-1]
+                    words[-1]._next_word = word
                 words.append(word)
             else:
                 if len(words) == 0:
                     words.append(Word())
-                if words[-1].is_extendable:
+                if words[-1]._is_extendable:
                     words[-1]._add_fragment(fragment)
                 else:
                     word = Word()
                     word._add_fragment(fragment)
                     if len(words) > 0:
-                        word.prev_word = words[-1]
-                        words[-1].next_word = word
+                        word._prev_word = words[-1]
+                        words[-1]._next_word = word
                     words.append(word)
             char_idx += increment
         return words
@@ -123,30 +123,30 @@ class TextArea:
         ) -> None:
         buffer = self._get_buffer()
         if len(buffer) > 0:
-            first_word.prev_word = buffer[-1]
-            buffer[-1].next_word = first_word
+            first_word._prev_word = buffer[-1]
+            buffer[-1]._next_word = first_word
             return
         last_word = self._get_the_last_word_from_textareas()
         if last_word is not None:
-            first_word.prev_word = last_word
-            last_word.next_word = first_word
+            first_word._prev_word = last_word
+            last_word._next_word = first_word
             return
 
     def _set_buffer(
         self,
         words: deque[Word]) -> None:
         current_textarea = self
-        while current_textarea.next_textarea is not None:
-            current_textarea = current_textarea.next_textarea
-        current_textarea.buffer = words
+        while current_textarea._next_textarea is not None:
+            current_textarea = current_textarea._next_textarea
+        current_textarea._buffer = words
 
     def _get_buffer(
         self
         ) -> deque[Word]:
         current_textarea = self
-        while current_textarea.next_textarea is not None:
-            current_textarea = current_textarea.next_textarea
-        return current_textarea.buffer
+        while current_textarea._next_textarea is not None:
+            current_textarea = current_textarea._next_textarea
+        return current_textarea._buffer
 
     def _get_the_last_word_from_textareas(
         self
@@ -154,7 +154,7 @@ class TextArea:
         textarea = self._get_the_first_textarea_to_accept_words()
         if textarea is None or textarea._is_empty():
             return None
-        return textarea.paragraphs[-1].lines[-1].words[-1]
+        return textarea._paragraphs[-1]._textlines[-1]._words[-1]
 
     def _generate_fragment_with_increment(
         self,
@@ -173,21 +173,21 @@ class TextArea:
         if self._is_string_total_pages_dummy(unicode_text, char_idx):
             (fragment, increment) = self._generate_total_pages_fragment()
             return (fragment, increment)
-        if self.current_font is None:
+        if self._current_font is None:
             raise ValueError("Current font is missing.")
-        fragment_height = self.current_font._get_line_height(
-            self.current_font_size)
-        fragment_width = self.current_font._get_char_width(
-            unicode_text[char_idx], self.current_font_size)
-        fragment_ascent = self.current_font._get_ascent(self.current_font_size)
+        fragment_height = self._current_font._get_line_height(
+            self._current_font_size)
+        fragment_width = self._current_font._get_char_width(
+            unicode_text[char_idx], self._current_font_size)
+        fragment_ascent = self._current_font._get_ascent(self._current_font_size)
         fragment = Fragment(
             fragment_height,
             fragment_width,
             fragment_ascent,
             unicode_text[char_idx],
-            self.current_font.name,
-            self.current_font_size,
-            self.current_font_color)
+            self._current_font.name,
+            self._current_font_size,
+            self._current_font_color)
         increment = 1
         return (fragment, increment)
 
@@ -220,7 +220,7 @@ class TextArea:
         unicode_text: str,
         char_idx: int
     ) -> bool:
-        current_page_dummy = self.document.settings.page_num_current_page_dummy
+        current_page_dummy = self._document.settings.page_num_current_page_dummy
         start = char_idx
         end = start + len(current_page_dummy)
         if unicode_text[start:end] == current_page_dummy:
@@ -232,7 +232,7 @@ class TextArea:
         unicode_text: str,
         char_idx: int
     ) -> bool:
-        total_pages_dummy = self.document.settings.page_num_total_pages_dummy
+        total_pages_dummy = self._document.settings.page_num_total_pages_dummy
         start = char_idx
         end = start + len(total_pages_dummy)
         if unicode_text[start:end] == total_pages_dummy:
@@ -242,81 +242,81 @@ class TextArea:
     def _generate_current_page_fragment(
         self
         ) -> tuple[Fragment, int]:
-        if self.current_font is None:
+        if self._current_font is None:
             raise ValueError("Current font is missing.")
-        fragment_width = (self.document.settings.page_num_dummy_length
-                          * self.current_font._get_char_width(
-                              "0", self.current_font_size))
-        fragment_height = self.current_font._get_line_height(
-            self.current_font_size)
-        fragment_ascent = self.current_font._get_ascent(
-            self.current_font_size)
+        fragment_width = (self._document.settings.page_num_dummy_length
+                          * self._current_font._get_char_width(
+                              "0", self._current_font_size))
+        fragment_height = self._current_font._get_line_height(
+            self._current_font_size)
+        fragment_ascent = self._current_font._get_ascent(
+            self._current_font_size)
         fragment = Fragment(
             fragment_height,
             fragment_width,
             fragment_ascent,
-            self.document.settings.page_num_current_page_dummy,
-            self.current_font.name,
-            self.current_font_size,
-            self.current_font_color)
-        fragment.page_number_presentation = (
-            self.document.settings.page_num_presentation)
-        fragment.is_current_page_dummy = True
-        increment = len(self.document.settings.page_num_current_page_dummy)
+            self._document.settings.page_num_current_page_dummy,
+            self._current_font.name,
+            self._current_font_size,
+            self._current_font_color)
+        fragment._page_number_presentation = (
+            self._document.settings.page_num_presentation)
+        fragment._is_current_page_dummy = True
+        increment = len(self._document.settings.page_num_current_page_dummy)
         return (fragment, increment)
 
     def _generate_total_pages_fragment(
         self
         ) -> tuple[Fragment, int]:
-        if self.current_font is None:
+        if self._current_font is None:
             raise ValueError("Current font is missing.")
-        fragment_width = (self.document.settings.page_num_dummy_length
-                          * self.current_font._get_char_width(
-                              "0", self.current_font_size))
-        fragment_height = self.current_font._get_line_height(
-            self.current_font_size)
-        fragment_ascent = self.current_font._get_ascent(
-            self.current_font_size)
+        fragment_width = (self._document.settings.page_num_dummy_length
+                          * self._current_font._get_char_width(
+                              "0", self._current_font_size))
+        fragment_height = self._current_font._get_line_height(
+            self._current_font_size)
+        fragment_ascent = self._current_font._get_ascent(
+            self._current_font_size)
         fragment = Fragment(
             fragment_height,
             fragment_width,
             fragment_ascent,
-            self.document.settings.page_num_total_pages_dummy,
-            self.current_font.name,
-            self.current_font_size,
-            self.current_font_color)
-        fragment.page_number_presentation = (
-            self.document.settings.page_num_presentation)
-        fragment.is_total_pages_dummy = True
-        increment = len(self.document.settings.page_num_total_pages_dummy)
+            self._document.settings.page_num_total_pages_dummy,
+            self._current_font.name,
+            self._current_font_size,
+            self._current_font_color)
+        fragment._page_number_presentation = (
+            self._document.settings.page_num_presentation)
+        fragment._is_total_pages_dummy = True
+        increment = len(self._document.settings.page_num_total_pages_dummy)
         return (fragment, increment)
 
     def _generate_new_line_fragment(
         self
         ) -> Fragment:
-        if self.current_font is None:
+        if self._current_font is None:
             raise ValueError("Current font is missing.")
         fragment_width = 0.0
-        fragment_height = self.current_font._get_line_height(
-            self.current_font_size)
-        fragment_ascent = self.current_font._get_ascent(
-            self.current_font_size)
+        fragment_height = self._current_font._get_line_height(
+            self._current_font_size)
+        fragment_ascent = self._current_font._get_ascent(
+            self._current_font_size)
         return Fragment(
             fragment_height,
             fragment_width,
             fragment_ascent,
             "\n",
-            self.current_font.name,
-            self.current_font_size,
-            self.current_font_color)
+            self._current_font.name,
+            self._current_font_size,
+            self._current_font_color)
 
     def _get_the_first_textarea_to_accept_words(
         self
         ) -> TextArea | None:
         current_textarea = self
-        while current_textarea.accepts_additional_words is False:
-            if current_textarea.next_textarea is not None:
-                current_textarea = current_textarea.next_textarea
+        while current_textarea._accepts_additional_words is False:
+            if current_textarea._next_textarea is not None:
+                current_textarea = current_textarea._next_textarea
             else:
                 return None
         return current_textarea
@@ -324,22 +324,22 @@ class TextArea:
     def _distrubute_words_in_all_paragraphs(
         self
         ) -> None:
-        for paragraph in self.paragraphs:
-            paragraph._distribute_words_in_lines()
+        for paragraph in self._paragraphs:
+            paragraph._distribute_words_in_textlines()
 
     def _move_words_between_areas(
         self
         ) -> None:
-        if self.available_height > 0:
+        if self._available_height > 0:
             self._pull_next_available_word()
-        if self.available_height < 0:
-            self.accepts_additional_words = False
+        if self._available_height < 0:
+            self._accepts_additional_words = False
             self._push_excess_words_to_next_available_place()
 
     def _pull_next_available_word(
         self
         ) -> None:
-        while self.available_height >= 0:
+        while self._available_height >= 0:
             next_word = self._get_next_available_word()
             if next_word is None:
                 return
@@ -364,48 +364,48 @@ class TextArea:
         word: Word
         ) -> None:
         if word._has_current_page_fragments():
-            self.words_with_current_page_fragments.append(word)
+            self._words_with_current_page_fragments.append(word)
         if word._has_total_pages_fragments():
-            self.words_with_total_pages_fragments.append(word)
-        self.paragraphs[-1]._append_word_right(word)
+            self._words_with_total_pages_fragments.append(word)
+        self._paragraphs[-1]._append_word_right(word)
 
     def _push_excess_words_to_next_available_place(
         self
         ) -> deque[Word] | None:
-        textline_to_push = self.paragraphs[-1].lines[-1]
-        while self.available_height < 0:
-            if self.next_textarea is not None:
-                self.next_textarea._generate_paragraph_when_pushing_words(
+        textline_to_push = self._paragraphs[-1]._textlines[-1]
+        while self._available_height < 0:
+            if self._next_textarea is not None:
+                self._next_textarea._generate_paragraph_when_pushing_words(
                     textline_to_push
                 )
                 words_to_push = textline_to_push._remove_line_and_get_words()
-                self.next_textarea._add_words_front_to_textarea(words_to_push)
+                self._next_textarea._add_words_front_to_textarea(words_to_push)
             else:
                 words_to_push = textline_to_push._remove_line_and_get_words()
                 words_to_push.extend(self._get_buffer())
                 self._set_buffer(words_to_push)
-            if len(self.paragraphs) == 0:
+            if len(self._paragraphs) == 0:
                 return
-            textline_to_push = self.paragraphs[-1].lines[-1]
-        if self.next_textarea is not None:
-            self.next_textarea._move_words_between_areas()
+            textline_to_push = self._paragraphs[-1]._textlines[-1]
+        if self._next_textarea is not None:
+            self._next_textarea._move_words_between_areas()
 
     def _generate_paragraph_from_buffer(
         self,
         word: Word,
     ) -> None:
-        if len(self.paragraphs) == 0:
+        if len(self._paragraphs) == 0:
             paragraph = Paragraph(self)
-            self.paragraphs.append(paragraph)
-            if word.prev_word is not None:
-                prev_paragraph = word.prev_word._get_paragraph()
-                paragraph.prev_linked_paragraph = prev_paragraph
+            self._paragraphs.append(paragraph)
+            if word._prev_word is not None:
+                prev_paragraph = word._prev_word._get_paragraph()
+                paragraph._prev_linked_paragraph = prev_paragraph
                 if prev_paragraph is not None:
-                    prev_paragraph.next_linked_paragraph = paragraph
+                    prev_paragraph._next_linked_paragraph = paragraph
                     paragraph._copy_paragraph_parameters_from(prev_paragraph)
-        if self.paragraphs[-1].ends_with_br:
+        if self._paragraphs[-1]._ends_with_br:
             paragraph = Paragraph(self)
-            self.paragraphs.append(paragraph)
+            self._paragraphs.append(paragraph)
 
     def _generate_paragraph_from_text_area(
         self,
@@ -413,21 +413,21 @@ class TextArea:
         paragraph: Paragraph
         ) -> None:
         if word._is_first_word_in_paragraph():
-            if word.textline is not None:
-                paragraph._set_non_first_line_indent(word.textline)
+            if word._textline is not None:
+                paragraph._set_non_first_line_indent(word._textline)
             new_paragraph = Paragraph(self)
-            self.paragraphs.append(new_paragraph)
+            self._paragraphs.append(new_paragraph)
             new_paragraph._copy_paragraph_parameters_from(paragraph)
-            new_paragraph.next_linked_paragraph = paragraph
-            paragraph.prev_linked_paragraph = new_paragraph
+            new_paragraph._next_linked_paragraph = paragraph
+            paragraph._prev_linked_paragraph = new_paragraph
             return
         if word._is_last_word_in_paragraph():
-            self.paragraphs[-1].next_linked_paragraph = None
-            paragraph.prev_linked_paragraph = None
+            self._paragraphs[-1]._next_linked_paragraph = None
+            paragraph._prev_linked_paragraph = None
             return
-        if self.paragraphs[-1].next_linked_paragraph != paragraph:
-            self.paragraphs[-1].next_linked_paragraph = paragraph
-            paragraph.prev_linked_paragraph = self.paragraphs[-1]
+        if self._paragraphs[-1]._next_linked_paragraph != paragraph:
+            self._paragraphs[-1]._next_linked_paragraph = paragraph
+            paragraph._prev_linked_paragraph = self._paragraphs[-1]
             return
 
     def _generate_paragraph_when_pushing_words(
@@ -435,45 +435,45 @@ class TextArea:
         textline_to_push: TextLine
     ) -> None:
         if (
-            len(self.paragraphs) == 0
+            len(self._paragraphs) == 0
             and textline_to_push._is_first_line_in_paragraph()):
             new_paragraph = Paragraph(self)
-            self.paragraphs.append(new_paragraph)
-            if textline_to_push.paragraph is not None:
-                textline_to_push.paragraph.next_linked_paragraph = None
+            self._paragraphs.append(new_paragraph)
+            if textline_to_push._paragraph is not None:
+                textline_to_push._paragraph._next_linked_paragraph = None
             return
         if (
-            len(self.paragraphs) == 0
+            len(self._paragraphs) == 0
             and not textline_to_push._is_first_line_in_paragraph()
             ):
             new_paragraph = Paragraph(self)
-            self.paragraphs.append(new_paragraph)
-            if textline_to_push.paragraph is not None:
+            self._paragraphs.append(new_paragraph)
+            if textline_to_push._paragraph is not None:
                 new_paragraph._copy_paragraph_parameters_from(
-                    textline_to_push.paragraph)
-            new_paragraph.prev_linked_paragraph = textline_to_push.paragraph
-            if textline_to_push.paragraph is not None:
-                textline_to_push.paragraph.next_linked_paragraph = new_paragraph
+                    textline_to_push._paragraph)
+            new_paragraph._prev_linked_paragraph = textline_to_push._paragraph
+            if textline_to_push._paragraph is not None:
+                textline_to_push._paragraph._next_linked_paragraph = new_paragraph
             return
         if textline_to_push._is_last_line_in_paragraph():
             new_paragraph = Paragraph(self)
-            self.paragraphs.appendleft(new_paragraph)
-            if textline_to_push.paragraph is not None:
+            self._paragraphs.appendleft(new_paragraph)
+            if textline_to_push._paragraph is not None:
                 new_paragraph._copy_paragraph_parameters_from(
-                    textline_to_push.paragraph)
-            new_paragraph.prev_linked_paragraph = textline_to_push.paragraph
-            if textline_to_push.paragraph is not None:
-                textline_to_push.paragraph.next_linked_paragraph = new_paragraph
+                    textline_to_push._paragraph)
+            new_paragraph._prev_linked_paragraph = textline_to_push._paragraph
+            if textline_to_push._paragraph is not None:
+                textline_to_push._paragraph._next_linked_paragraph = new_paragraph
         if textline_to_push._is_first_line_in_paragraph():
-            self.paragraphs[0].prev_linked_paragraph = None
-            if textline_to_push.paragraph is not None:
-                textline_to_push.paragraph.next_linked_paragraph = None
+            self._paragraphs[0]._prev_linked_paragraph = None
+            if textline_to_push._paragraph is not None:
+                textline_to_push._paragraph._next_linked_paragraph = None
 
     def _remove_word(
         self,
         word: Word
         ) -> None:
-        if word.textline is None:
+        if word._textline is None:
             self._get_buffer().remove(word)
         else:
             word._remove_page_number()
@@ -485,8 +485,8 @@ class TextArea:
         ) -> None:
         while len(words) > 0:
             word = words.popleft()
-            self.paragraphs[0]._append_word_left(word)
-        self.paragraphs[0]._distribute_words_in_lines()
+            self._paragraphs[0]._append_word_left(word)
+        self._paragraphs[0]._distribute_words_in_textlines()
 
     def _get_next_available_word(
         self
@@ -496,7 +496,7 @@ class TextArea:
         """
         textarea = self._get_next_textarea_with_words()
         if textarea is not None:
-            return textarea.paragraphs[0].lines[0].words[0]
+            return textarea._paragraphs[0]._textlines[0]._words[0]
         buffer = self._get_buffer()
         if len(buffer) == 0:
             return None
@@ -505,21 +505,21 @@ class TextArea:
     def _get_next_textarea_with_words(
         self
         ) -> TextArea | None:
-        textarea = self.next_textarea
+        textarea = self._next_textarea
         while textarea is not None:
             if not textarea._is_empty():
                 return textarea
-            textarea = textarea.next_textarea
+            textarea = textarea._next_textarea
         return None
 
     def _is_empty(
         self
         ) -> bool:
-        if len(self.paragraphs) == 0:
+        if len(self._paragraphs) == 0:
             return True
-        if len(self.paragraphs[0].lines) == 0:
+        if len(self._paragraphs[0]._textlines) == 0:
             return True
-        if len(self.paragraphs[0].lines[0].words) == 0:
+        if len(self._paragraphs[0]._textlines[0]._words) == 0:
             return True
         return False
 
@@ -527,52 +527,52 @@ class TextArea:
         self,
         current_page: int
         ) -> None:
-        for word in self.words_with_current_page_fragments:
-            for fragment in word.current_page_fragments:
-                if fragment.page_number_presentation is None:
+        for word in self._words_with_current_page_fragments:
+            for fragment in word._current_page_fragments:
+                if fragment._page_number_presentation is None:
                     continue
-                font = self.document.fonts[fragment.font_name]
-                chars = fragment.page_number_presentation(current_page)
+                font = self._document.fonts[fragment._font_name]
+                chars = fragment._page_number_presentation(current_page)
                 page_number_width = 0.0
                 if len(chars) > 0:
-                    fragment.chars = chars
+                    fragment._chars = chars
                     for char in chars:
                         page_number_width += font._get_char_width(
-                            char, fragment.font_size)
+                            char, fragment._font_size)
                 fragment._adjust_width(page_number_width)
-                if (fragment.word is not None
-                    and fragment.word.textline is not None
-                    and fragment.word.textline.paragraph is not None
-                    and fragment.word.textline.paragraph.textarea is not None):
-                    paragraph = fragment.word.textline.paragraph
-                    paragraph._distribute_words_in_lines()
-                    textarea = fragment.word.textline.paragraph.textarea
+                if (fragment._word is not None
+                    and fragment._word._textline is not None
+                    and fragment._word._textline._paragraph is not None
+                    and fragment._word._textline._paragraph._textarea is not None):
+                    paragraph = fragment._word._textline._paragraph
+                    paragraph._distribute_words_in_textlines()
+                    textarea = fragment._word._textline._paragraph._textarea
                     textarea._move_words_between_areas()
 
     def _build_total_pages_fragments(
         self,
         total_pages: int
         ) -> None:
-        for word in self.words_with_total_pages_fragments:
-            for fragment in word.total_pages_fragments:
-                if fragment.page_number_presentation is None:
+        for word in self._words_with_total_pages_fragments:
+            for fragment in word._total_pages_fragments:
+                if fragment._page_number_presentation is None:
                     continue
-                font = self.document.fonts[fragment.font_name]
-                chars = fragment.page_number_presentation(total_pages)
+                font = self._document.fonts[fragment._font_name]
+                chars = fragment._page_number_presentation(total_pages)
                 new_length = 0.0
                 if len(chars) > 0:
-                    fragment.chars = chars
+                    fragment._chars = chars
                     for char in chars:
                         new_length += font._get_char_width(
-                            char, fragment.font_size)
+                            char, fragment._font_size)
                 fragment._adjust_width(new_length)
-                if (fragment.word is not None
-                    and fragment.word.textline is not None
-                    and fragment.word.textline.paragraph is not None
-                    and fragment.word.textline.paragraph.textarea is not None):
-                    paragraph = fragment.word.textline.paragraph
-                    paragraph._distribute_words_in_lines()
-                    textarea = fragment.word.textline.paragraph.textarea
+                if (fragment._word is not None
+                    and fragment._word._textline is not None
+                    and fragment._word._textline._paragraph is not None
+                    and fragment._word._textline._paragraph._textarea is not None):
+                    paragraph = fragment._word._textline._paragraph
+                    paragraph._distribute_words_in_textlines()
+                    textarea = fragment._word._textline._paragraph._textarea
                     textarea._move_words_between_areas()
 
     def link_textarea(
@@ -580,18 +580,18 @@ class TextArea:
         next_textarea: TextArea
         ) -> None:
         last_textarea = self
-        while last_textarea.next_textarea is not None:
-            last_textarea = last_textarea.next_textarea
-        last_textarea.next_textarea = next_textarea
-        next_textarea.buffer = last_textarea.buffer
-        last_textarea.buffer = deque()
+        while last_textarea._next_textarea is not None:
+            last_textarea = last_textarea._next_textarea
+        last_textarea._next_textarea = next_textarea
+        next_textarea._buffer = last_textarea._buffer
+        last_textarea._buffer = deque()
         self._move_words_in_all_linked_areas()
 
     def set_width(
         self,
         new_width: float
         ) -> None:
-        self.width = new_width
-        for paragraph in self.paragraphs:
+        self._width = new_width
+        for paragraph in self._paragraphs:
             paragraph._set_paragraph_width(new_width)
         self._move_words_in_all_linked_areas()
