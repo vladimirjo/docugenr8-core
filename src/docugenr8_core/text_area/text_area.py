@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 
@@ -53,7 +54,17 @@ class TextArea:
         unicode_text: str,
     ) -> None:
         self._save_font_attributes_from_document_settings()
-        words = self._create_words(unicode_text)
+        if self._current_font is None:
+            raise ValueError("Current font must be set in settings.")
+        words = create_words(
+            unicode_text,
+            self._current_font,
+            self._current_font_size,
+            self._current_font_color,
+            self._document.settings.page_num_current_page_dummy,
+            self._document.settings.page_num_total_pages_dummy,
+            self._document.settings.page_num_dummy_length,
+            self._document.settings.page_num_presentation)
         self._establish_link_with_last_word(words[0])
         self._insert_words_into_buffer(words)
         self._move_words_in_all_linked_areas()
@@ -85,37 +96,6 @@ class TextArea:
         ) -> None:
         buffer = self._get_buffer()
         buffer.extend(words)
-
-    def _create_words(
-        self,
-        unicode_text: str,
-    ) -> list[Word]:
-        char_idx = 0
-        words: list[Word] = []
-        while char_idx < len(unicode_text):
-            (fragment, increment) = self._generate_fragment_with_increment(
-                unicode_text, char_idx)
-            if fragment._chars in {"\n", "\t", " "}:
-                word = Word()
-                word._add_fragment(fragment)
-                if len(words) > 0:
-                    word._prev_word = words[-1]
-                    words[-1]._next_word = word
-                words.append(word)
-            else:
-                if len(words) == 0:
-                    words.append(Word())
-                if words[-1]._is_extendable:
-                    words[-1]._add_fragment(fragment)
-                else:
-                    word = Word()
-                    word._add_fragment(fragment)
-                    if len(words) > 0:
-                        word._prev_word = words[-1]
-                        words[-1]._next_word = word
-                    words.append(word)
-            char_idx += increment
-        return words
 
     def _establish_link_with_last_word(
         self,
@@ -155,160 +135,6 @@ class TextArea:
         if textarea is None or textarea._is_empty():
             return None
         return textarea._paragraphs[-1]._textlines[-1]._words[-1]
-
-    def _generate_fragment_with_increment(
-        self,
-        unicode_text: str,
-        char_idx: int,
-    ) -> tuple[Fragment, int]:
-        if self._is_carriage_return_with_new_line(unicode_text, char_idx):
-            fragment = self._generate_new_line_fragment()
-            return (fragment, 2)
-        if self._is_only_carriage_return(unicode_text, char_idx):
-            fragment = self._generate_new_line_fragment()
-            return (fragment, 1)
-        if self._is_string_current_page_dummy(unicode_text, char_idx):
-            (fragment, increment) = self._generate_current_page_fragment()
-            return (fragment, increment)
-        if self._is_string_total_pages_dummy(unicode_text, char_idx):
-            (fragment, increment) = self._generate_total_pages_fragment()
-            return (fragment, increment)
-        if self._current_font is None:
-            raise ValueError("Current font is missing.")
-        fragment_height = self._current_font._get_line_height(
-            self._current_font_size)
-        fragment_width = self._current_font._get_char_width(
-            unicode_text[char_idx], self._current_font_size)
-        fragment_ascent = self._current_font._get_ascent(self._current_font_size)
-        fragment = Fragment(
-            fragment_height,
-            fragment_width,
-            fragment_ascent,
-            unicode_text[char_idx],
-            self._current_font.name,
-            self._current_font_size,
-            self._current_font_color)
-        increment = 1
-        return (fragment, increment)
-
-    def _is_carriage_return_with_new_line(  # noqa: PLR6301
-        self,
-        unicode_text: str,
-        char_idx: int
-        ) -> bool:
-        carriage_return = unicode_text[char_idx]
-        try:
-            new_line = unicode_text[char_idx + 1]
-        except IndexError:
-            return False
-        if (carriage_return == "\r"
-            and new_line == "\n"):
-            return True
-        return False
-
-    def _is_only_carriage_return(  # noqa: PLR6301
-        self,
-        unicode_text: str,
-        char_idx: int
-        ) -> bool:
-        if unicode_text[char_idx] == "\r":
-            return True
-        return False
-
-    def _is_string_current_page_dummy(
-        self,
-        unicode_text: str,
-        char_idx: int
-    ) -> bool:
-        current_page_dummy = self._document.settings.page_num_current_page_dummy
-        start = char_idx
-        end = start + len(current_page_dummy)
-        if unicode_text[start:end] == current_page_dummy:
-            return True
-        return False
-
-    def _is_string_total_pages_dummy(
-        self,
-        unicode_text: str,
-        char_idx: int
-    ) -> bool:
-        total_pages_dummy = self._document.settings.page_num_total_pages_dummy
-        start = char_idx
-        end = start + len(total_pages_dummy)
-        if unicode_text[start:end] == total_pages_dummy:
-            return True
-        return False
-
-    def _generate_current_page_fragment(
-        self
-        ) -> tuple[Fragment, int]:
-        if self._current_font is None:
-            raise ValueError("Current font is missing.")
-        fragment_width = (self._document.settings.page_num_dummy_length
-                          * self._current_font._get_char_width(
-                              "0", self._current_font_size))
-        fragment_height = self._current_font._get_line_height(
-            self._current_font_size)
-        fragment_ascent = self._current_font._get_ascent(
-            self._current_font_size)
-        fragment = Fragment(
-            fragment_height,
-            fragment_width,
-            fragment_ascent,
-            self._document.settings.page_num_current_page_dummy,
-            self._current_font.name,
-            self._current_font_size,
-            self._current_font_color)
-        fragment._page_number_presentation = (
-            self._document.settings.page_num_presentation)
-        fragment._is_current_page_dummy = True
-        increment = len(self._document.settings.page_num_current_page_dummy)
-        return (fragment, increment)
-
-    def _generate_total_pages_fragment(
-        self
-        ) -> tuple[Fragment, int]:
-        if self._current_font is None:
-            raise ValueError("Current font is missing.")
-        fragment_width = (self._document.settings.page_num_dummy_length
-                          * self._current_font._get_char_width(
-                              "0", self._current_font_size))
-        fragment_height = self._current_font._get_line_height(
-            self._current_font_size)
-        fragment_ascent = self._current_font._get_ascent(
-            self._current_font_size)
-        fragment = Fragment(
-            fragment_height,
-            fragment_width,
-            fragment_ascent,
-            self._document.settings.page_num_total_pages_dummy,
-            self._current_font.name,
-            self._current_font_size,
-            self._current_font_color)
-        fragment._page_number_presentation = (
-            self._document.settings.page_num_presentation)
-        fragment._is_total_pages_dummy = True
-        increment = len(self._document.settings.page_num_total_pages_dummy)
-        return (fragment, increment)
-
-    def _generate_new_line_fragment(
-        self
-        ) -> Fragment:
-        if self._current_font is None:
-            raise ValueError("Current font is missing.")
-        fragment_width = 0.0
-        fragment_height = self._current_font._get_line_height(
-            self._current_font_size)
-        fragment_ascent = self._current_font._get_ascent(
-            self._current_font_size)
-        return Fragment(
-            fragment_height,
-            fragment_width,
-            fragment_ascent,
-            "\n",
-            self._current_font.name,
-            self._current_font_size,
-            self._current_font_color)
 
     def _get_the_first_textarea_to_accept_words(
         self
@@ -595,3 +421,233 @@ class TextArea:
         for paragraph in self._paragraphs:
             paragraph._set_paragraph_width(new_width)
         self._move_words_in_all_linked_areas()
+
+
+# CREATE WORDS
+def create_words(
+    unicode_text: str,
+    current_font: Font,
+    current_font_size: float,
+    current_font_color: tuple[float, float, float],
+    current_page_dummy: str,
+    total_pages_dummy: str,
+    page_num_dummy_length: int,
+    page_number_presentation: Callable[[int], str] = (str)
+) -> list[Word]:
+    char_idx = 0
+    words: list[Word] = []
+    while char_idx < len(unicode_text):
+        (fragment, increment) = generate_fragment_with_increment(
+            unicode_text,
+            char_idx,
+            current_font,
+            current_font_size,
+            current_font_color,
+            current_page_dummy,
+            total_pages_dummy,
+            page_num_dummy_length,
+            page_number_presentation)
+        if fragment._chars in {"\n", "\t", " "}:
+            word = Word()
+            word._add_fragment(fragment)
+            if len(words) > 0:
+                word._prev_word = words[-1]
+                words[-1]._next_word = word
+            words.append(word)
+        else:
+            if len(words) == 0:
+                words.append(Word())
+            if words[-1]._is_extendable:
+                words[-1]._add_fragment(fragment)
+            else:
+                word = Word()
+                word._add_fragment(fragment)
+                if len(words) > 0:
+                    word._prev_word = words[-1]
+                    words[-1]._next_word = word
+                words.append(word)
+        char_idx += increment
+    return words
+
+def generate_fragment_with_increment(
+        unicode_text: str,
+        char_idx: int,
+        current_font: Font,
+        current_font_size: float,
+        current_font_color: tuple[float, float, float],
+        current_page_dummy: str,
+        total_pages_dummy: str,
+        page_num_dummy_length: int,
+        page_number_presentation: Callable[[int], str] = (str),
+    ) -> tuple[Fragment, int]:
+    if is_carriage_return_with_new_line(
+        unicode_text,
+        char_idx,
+        ):
+        fragment = generate_new_line_fragment(
+            current_font,
+            current_font_size,
+            current_font_color,
+        )
+        return (fragment, 2)
+    if is_only_carriage_return(unicode_text, char_idx):
+        fragment = generate_new_line_fragment(
+            current_font,
+            current_font_size,
+            current_font_color,
+        )
+        return (fragment, 1)
+    if is_string_current_page_dummy(
+        unicode_text,
+        char_idx,
+        current_page_dummy
+        ):
+        (fragment, increment) = generate_current_page_fragment(
+            current_font,
+            current_font_size,
+            current_font_color,
+            current_page_dummy,
+            page_num_dummy_length,
+            page_number_presentation,
+        )
+        return (fragment, increment)
+    if is_string_total_pages_dummy(
+        unicode_text,
+        char_idx,
+        total_pages_dummy):
+        (fragment, increment) = generate_total_pages_fragment(
+            current_font,
+            current_font_size,
+            current_font_color,
+            total_pages_dummy,
+            page_num_dummy_length,
+            page_number_presentation
+        )
+        return (fragment, increment)
+    fragment_height = current_font._get_line_height(current_font_size)
+    fragment_width = current_font._get_char_width(
+        unicode_text[char_idx], current_font_size)
+    fragment_ascent = current_font._get_ascent(current_font_size)
+    fragment = Fragment(
+        fragment_height,
+        fragment_width,
+        fragment_ascent,
+        unicode_text[char_idx],
+        current_font.name,
+        current_font_size,
+        current_font_color)
+    increment = 1
+    return (fragment, increment)
+
+def is_carriage_return_with_new_line(
+    unicode_text: str,
+    char_idx: int,
+    ) -> bool:
+    carriage_return = unicode_text[char_idx]
+    try:
+        new_line = unicode_text[char_idx + 1]
+    except IndexError:
+        return False
+    if (carriage_return == "\r"
+        and new_line == "\n"):
+        return True
+    return False
+
+def is_only_carriage_return(
+    unicode_text: str,
+    char_idx: int
+    ) -> bool:
+    if unicode_text[char_idx] == "\r":
+        return True
+    return False
+
+def is_string_current_page_dummy(
+    unicode_text: str,
+    char_idx: int,
+    current_page_dummy: str,
+) -> bool:
+    start = char_idx
+    end = start + len(current_page_dummy)
+    if unicode_text[start:end] == current_page_dummy:
+        return True
+    return False
+
+def is_string_total_pages_dummy(
+    unicode_text: str,
+    char_idx: int,
+    total_pages_dummy: str
+) -> bool:
+    start = char_idx
+    end = start + len(total_pages_dummy)
+    if unicode_text[start:end] == total_pages_dummy:
+        return True
+    return False
+
+def generate_current_page_fragment(
+    current_font: Font,
+    current_font_size: float,
+    current_font_color: tuple[float, float, float],
+    current_page_dummy: str,
+    page_num_dummy_length: int,
+    page_number_presentation: Callable[[int], str] = (str),
+    ) -> tuple[Fragment, int]:
+    fragment_width = (page_num_dummy_length
+                        * current_font._get_char_width("0", current_font_size))
+    fragment_height = current_font._get_line_height(current_font_size)
+    fragment_ascent = current_font._get_ascent(current_font_size)
+    fragment = Fragment(
+        fragment_height,
+        fragment_width,
+        fragment_ascent,
+        current_page_dummy,
+        current_font.name,
+        current_font_size,
+        current_font_color)
+    fragment._page_number_presentation = (page_number_presentation)
+    fragment._is_current_page_dummy = True
+    increment = len(current_page_dummy)
+    return (fragment, increment)
+
+def generate_total_pages_fragment(
+    current_font: Font,
+    current_font_size: float,
+    current_font_color: tuple[float, float, float],
+    total_pages_dummy: str,
+    page_num_dummy_length: int,
+    page_number_presentation: Callable[[int], str] = (str),
+    ) -> tuple[Fragment, int]:
+    fragment_width = (page_num_dummy_length
+                        * current_font._get_char_width("0", current_font_size))
+    fragment_height = current_font._get_line_height(current_font_size)
+    fragment_ascent = current_font._get_ascent(current_font_size)
+    fragment = Fragment(
+        fragment_height,
+        fragment_width,
+        fragment_ascent,
+        total_pages_dummy,
+        current_font.name,
+        current_font_size,
+        current_font_color)
+    fragment._page_number_presentation = (page_number_presentation)
+    fragment._is_total_pages_dummy = True
+    increment = len(total_pages_dummy)
+    return (fragment, increment)
+
+def generate_new_line_fragment(
+    current_font: Font,
+    current_font_size: float,
+    current_font_color: tuple[float, float, float],
+    ) -> Fragment:
+    fragment_width = 0.0
+    fragment_height = current_font._get_line_height(
+        current_font_size)
+    fragment_ascent = current_font._get_ascent(
+        current_font_size)
+    return Fragment(
+        fragment_height,
+        fragment_width,
+        fragment_ascent,
+        "\n",
+        current_font.name,
+        current_font_size,
+        current_font_color)

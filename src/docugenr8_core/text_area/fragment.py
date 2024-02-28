@@ -18,7 +18,7 @@ class Fragment:
         chars: str,
         font_name: str,
         font_size: float,
-        font_color: tuple[int, int, int],
+        font_color: tuple[float, float, float],
     ) -> None:
         self._height = height
         self._width = width
