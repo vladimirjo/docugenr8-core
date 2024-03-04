@@ -1,4 +1,5 @@
 from __future__ import annotations
+from collections import deque
 
 from typing import TYPE_CHECKING
 
@@ -81,15 +82,15 @@ class Paragraph:
             chars += line._get_chars()
         return chars
 
-    def _distribute_words_in_textlines(
+    def _adjust_words_between_textlines(
         self
         ) -> None:
         if len(self._textlines) == 0:
             return
         line = self._textlines[0]
-        while line is not None and line._next_line is not None:
+        while line is not None and line._next is not None:
             line._adjust_words_between_textlines()
-            line = line._next_line
+            line = line._next
 
     def _change_height(
         self,
@@ -103,44 +104,49 @@ class Paragraph:
         word: Word
         ) -> None:
         if len(self._textlines) == 0:
-            self._generate_textline()
+            self._create_textline()
         if word._chars == "\n":
             self._ends_with_br = True
-        self._textlines[0]._append_word_left(word)
+        self._textlines[0]._append_word(word, 0)
 
     def _append_word_right(
         self,
         word: Word
         ) -> None:
         if len(self._textlines) == 0:
-            self._generate_textline()
+            self._create_textline()
         if word._chars == "\n":
             self._ends_with_br = True
         last_line = self._textlines[-1]
-        last_line._append_word_right(word)
+        last_line._append_word(word)
         last_line._adjust_words_between_textlines()
 
-    def _generate_textline(
-        self
+    def _create_textline(
+        self,
+        index: int | None = None,
         ) -> None:
+        if index is None:
+            index = len(self._textlines)
+        if index < 0 or index > len(self._textlines):
+            raise IndexError(f"Index {index} out of range in paragraph.")
+
+
         textline = TextLine(self)
-        if len(self._textlines) > 0:
-            textline._prev_line = self._textlines[-1]
-            self._textlines[-1]._next_line = textline
-        paragraph = self._get_first_linked_paragraph()
-        if len(paragraph._textlines) == 0:
-            textline._set_width_and_available_space(
-                self._width
-                - self._left_indent
-                - self._first_line_indent
-                - self._right_indent)
+        if self._prev_linked_paragraph is None and len(self._textlines) == 0:
+            self._set_first_line_indent(textline)
         else:
-            textline._set_width_and_available_space(
-                self._width
-                - self._left_indent
-                - self._hanging_indent
-                - self._right_indent)
-        self._textlines.append(textline)
+            self._set_non_first_line_indent(textline)
+        prev_textline = self._textlines[index - 1] if index > 0 else None
+        next_textline = (self._textlines[index + 1]
+                            if index < (len(self._textlines) - 1) else None)
+        self._textlines.insert(index, textline)
+        textline._prev = prev_textline
+        textline._next = next_textline
+        if prev_textline is not None:
+            prev_textline._next = textline
+            prev_textline._set_leading()
+        if next_textline is not None:
+            next_textline._prev = textline
 
     def _set_non_first_line_indent(
         self,
@@ -162,12 +168,13 @@ class Paragraph:
     def _pop_word_front_from_paragraph(
         self
         ) -> Word:
-        return self._textlines[0]._pop_word_left()
+        return self._textlines[0]._pop_word(0)
 
     def _pop_word_back_from_paragraph(
         self
         ) -> Word:
-        return self._textlines[-1]._pop_word_right()
+        return self._textlines[-1]._pop_word(
+                len(self._textlines[-1]._words) - 1)
 
     def _set_paragraph_width(
         self,
@@ -176,9 +183,33 @@ class Paragraph:
         width_diff = new_width - self._width
         self._width += width_diff
         for line in self._textlines:
-            line._set_width_and_available_space(new_width)
-            if line is self._textlines[0]:
+            if line is self._textlines[0] and self._prev_linked_paragraph is None:
                 self._set_first_line_indent(line)
             else:
                 self._set_non_first_line_indent(line)
-        self._distribute_words_in_textlines()
+        self._adjust_words_between_textlines()
+
+    def _get_first_word_from_next_textline(
+        self,
+        textline: TextLine
+    ) -> Word | None:
+        if textline not in self._textlines:
+            raise ValueError("Textline object is not present "
+                             "in parent paragraph object.")
+        textline_index = self._textlines.index(textline)
+        next_textline_index = textline_index + 1
+        if next_textline_index > len(self._textlines):
+            raise ValueError("Invalid index of the textline.")
+        if next_textline_index == len(self._textlines):
+            return None
+        if len(self._textlines[next_textline_index]._words) == 0:
+            return None
+        return self._textlines[next_textline_index]._words[0]
+
+    def _remove_paragraph_from_text_area(
+        self
+    ) -> deque[Word]:
+        removed_words = deque()
+        for textline in self._textlines:
+            removed_words.extend(textline._remove_line_from_text_area())
+        return removed_words

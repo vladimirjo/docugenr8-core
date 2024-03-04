@@ -61,8 +61,8 @@ def doc_with_fonts():
     font2._get_line_height.side_effect  = font2_get_line_height
     font2.name = "font2"
     doc = Document()
-    doc.fonts["font2"] = font1
     doc.fonts["font1"] = font1
+    doc.fonts["font2"] = font2
     doc.settings.font_current = "font1"
     doc.settings.paragraph_first_line_indent = 0
     doc.settings.paragraph_hanging_indent = 0

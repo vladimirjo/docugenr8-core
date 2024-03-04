@@ -39,7 +39,7 @@ class TextArea:
         self._next_textarea: None | TextArea = None
         self._prev_textarea: None | TextArea = None
         self._accepts_additional_words: bool = True
-
+        self._word_width_exceeds_textline_width: bool = False
         # late binding when adding text
         self._current_font: None | Font = None
         self._current_font_size: float = 0
@@ -65,7 +65,6 @@ class TextArea:
             self._document.settings.page_num_total_pages_dummy,
             self._document.settings.page_num_dummy_length,
             self._document.settings.page_num_presentation)
-        self._establish_link_with_last_word(words[0])
         self._insert_words_into_buffer(words)
         self._move_words_in_all_linked_areas()
 
@@ -96,21 +95,6 @@ class TextArea:
         ) -> None:
         buffer = self._get_buffer()
         buffer.extend(words)
-
-    def _establish_link_with_last_word(
-        self,
-        first_word: Word
-        ) -> None:
-        buffer = self._get_buffer()
-        if len(buffer) > 0:
-            first_word._prev_word = buffer[-1]
-            buffer[-1]._next_word = first_word
-            return
-        last_word = self._get_the_last_word_from_textareas()
-        if last_word is not None:
-            first_word._prev_word = last_word
-            last_word._next_word = first_word
-            return
 
     def _set_buffer(
         self,
@@ -151,7 +135,7 @@ class TextArea:
         self
         ) -> None:
         for paragraph in self._paragraphs:
-            paragraph._distribute_words_in_textlines()
+            paragraph._adjust_words_between_textlines()
 
     def _move_words_between_areas(
         self
@@ -172,6 +156,9 @@ class TextArea:
             self._create_paragraph_if_needed_for_incoming_word(next_word)
             self._remove_word(next_word)
             self._append_word_to_area(next_word)
+            if self._word_width_exceeds_textline_width:
+                self._word_width_exceeds_textline_width = False
+                break
 
     def _create_paragraph_if_needed_for_incoming_word(
         self,
@@ -179,7 +166,7 @@ class TextArea:
         ) -> None:
         paragraph = word._get_paragraph()
         if paragraph is None:
-            self._generate_paragraph_from_buffer(word)
+            self._generate_paragraph_from_buffer()
         else:
             self._generate_paragraph_from_text_area(
                 word,
@@ -204,34 +191,34 @@ class TextArea:
                 self._next_textarea._generate_paragraph_when_pushing_words(
                     textline_to_push
                 )
-                words_to_push = textline_to_push._remove_line_and_get_words()
+                words_to_push = textline_to_push._remove_line_from_text_area()
                 self._next_textarea._add_words_front_to_textarea(words_to_push)
             else:
-                words_to_push = textline_to_push._remove_line_and_get_words()
+                words_to_push = textline_to_push._remove_line_from_text_area()
                 words_to_push.extend(self._get_buffer())
                 self._set_buffer(words_to_push)
             if len(self._paragraphs) == 0:
                 return
             textline_to_push = self._paragraphs[-1]._textlines[-1]
         if self._next_textarea is not None:
-            self._next_textarea._move_words_between_areas()
+            if len(self._paragraphs) == 0:
+                self._next_textarea._empty_textarea()
+            else:
+                self._next_textarea._move_words_between_areas()
 
     def _generate_paragraph_from_buffer(
         self,
-        word: Word,
     ) -> None:
         if len(self._paragraphs) == 0:
-            paragraph = Paragraph(self)
-            self._paragraphs.append(paragraph)
-            if word._prev_word is not None:
-                prev_paragraph = word._prev_word._get_paragraph()
-                paragraph._prev_linked_paragraph = prev_paragraph
-                if prev_paragraph is not None:
-                    prev_paragraph._next_linked_paragraph = paragraph
-                    paragraph._copy_paragraph_parameters_from(prev_paragraph)
+            new_paragraph = Paragraph(self)
+            self._paragraphs.append(new_paragraph)
+            if self._prev_textarea is not None:
+                prev_paragraph = self._prev_textarea._paragraphs[-1]
+                prev_paragraph._next_linked_paragraph = new_paragraph
+                new_paragraph._prev_linked_paragraph = prev_paragraph
+                new_paragraph._copy_paragraph_parameters_from(prev_paragraph)
         if self._paragraphs[-1]._ends_with_br:
-            paragraph = Paragraph(self)
-            self._paragraphs.append(paragraph)
+            self._paragraphs.append(Paragraph(self))
 
     def _generate_paragraph_from_text_area(
         self,
@@ -311,8 +298,8 @@ class TextArea:
         ) -> None:
         while len(words) > 0:
             word = words.popleft()
-            self._paragraphs[0]._append_word_left(word)
-        self._paragraphs[0]._distribute_words_in_textlines()
+            self._paragraphs[0]._textlines[0]._append_word(word, 0)
+        self._paragraphs[0]._adjust_words_between_textlines()
 
     def _get_next_available_word(
         self
@@ -371,7 +358,7 @@ class TextArea:
                     and fragment._word._textline._paragraph is not None
                     and fragment._word._textline._paragraph._textarea is not None):
                     paragraph = fragment._word._textline._paragraph
-                    paragraph._distribute_words_in_textlines()
+                    paragraph._adjust_words_between_textlines()
                     textarea = fragment._word._textline._paragraph._textarea
                     textarea._move_words_between_areas()
 
@@ -397,7 +384,7 @@ class TextArea:
                     and fragment._word._textline._paragraph is not None
                     and fragment._word._textline._paragraph._textarea is not None):
                     paragraph = fragment._word._textline._paragraph
-                    paragraph._distribute_words_in_textlines()
+                    paragraph._adjust_words_between_textlines()
                     textarea = fragment._word._textline._paragraph._textarea
                     textarea._move_words_between_areas()
 
@@ -422,6 +409,45 @@ class TextArea:
             paragraph._set_paragraph_width(new_width)
         self._move_words_in_all_linked_areas()
 
+    def _empty_textlines_and_paragraphs_from_line(
+        self,
+        textline_index: int,
+        paragraph_index: int
+    ) -> None:
+        removed_words = deque()
+        first_paragraph_to_remove_words_from = self._paragraphs[paragraph_index]
+        while (textline_index
+               < len(first_paragraph_to_remove_words_from._textlines)):
+            texline = (self._paragraphs[paragraph_index]
+                           ._textlines[textline_index])
+            removed_words.extend(texline._remove_line_from_text_area())
+            textline_index += 1
+        if (len(self._paragraphs) > 0
+            and (first_paragraph_to_remove_words_from
+                    == self._paragraphs[paragraph_index])):
+            paragraph_index += 1
+        while paragraph_index < len(self._paragraphs):
+            paragraph = self._paragraphs[paragraph_index]
+            removed_words.extend(paragraph._remove_paragraph_from_text_area())
+            # paragraph_index += 1
+        textarea_to_empty = self._next_textarea
+        while textarea_to_empty is not None:
+            removed_words.extend(textarea_to_empty._empty_textarea())
+            textarea_to_empty = textarea_to_empty._next_textarea
+        word_buffer = self._get_buffer()
+        word_buffer.extendleft(removed_words)
+
+    def _empty_textarea(
+        self
+    ) -> deque[Word]:
+        removed_words = deque()
+        while len(self._paragraphs) > 0:
+            paragraph = self._paragraphs[0]
+            removed_words.extend(paragraph._remove_paragraph_from_text_area())
+        return removed_words
+
+
+
 
 # CREATE WORDS
 def create_words(
@@ -429,10 +455,10 @@ def create_words(
     current_font: Font,
     current_font_size: float,
     current_font_color: tuple[float, float, float],
-    current_page_dummy: str,
-    total_pages_dummy: str,
-    page_num_dummy_length: int,
-    page_number_presentation: Callable[[int], str] = (str)
+    current_page_dummy: str | None = None,
+    total_pages_dummy: str | None = None,
+    page_num_dummy_length: int | None = None,
+    page_number_presentation: Callable[[int], str] | None = None,
 ) -> list[Word]:
     char_idx = 0
     words: list[Word] = []
@@ -450,9 +476,6 @@ def create_words(
         if fragment._chars in {"\n", "\t", " "}:
             word = Word()
             word._add_fragment(fragment)
-            if len(words) > 0:
-                word._prev_word = words[-1]
-                words[-1]._next_word = word
             words.append(word)
         else:
             if len(words) == 0:
@@ -462,9 +485,6 @@ def create_words(
             else:
                 word = Word()
                 word._add_fragment(fragment)
-                if len(words) > 0:
-                    word._prev_word = words[-1]
-                    words[-1]._next_word = word
                 words.append(word)
         char_idx += increment
     return words
@@ -475,10 +495,10 @@ def generate_fragment_with_increment(
         current_font: Font,
         current_font_size: float,
         current_font_color: tuple[float, float, float],
-        current_page_dummy: str,
-        total_pages_dummy: str,
-        page_num_dummy_length: int,
-        page_number_presentation: Callable[[int], str] = (str),
+        current_page_dummy: str | None,
+        total_pages_dummy: str | None,
+        page_num_dummy_length: int | None,
+        page_number_presentation: Callable[[int], str] | None,
     ) -> tuple[Fragment, int]:
     if is_carriage_return_with_new_line(
         unicode_text,
@@ -497,32 +517,35 @@ def generate_fragment_with_increment(
             current_font_color,
         )
         return (fragment, 1)
-    if is_string_current_page_dummy(
-        unicode_text,
-        char_idx,
-        current_page_dummy
-        ):
+    if (current_page_dummy is not None
+        and page_num_dummy_length is not None
+        and page_number_presentation is not None
+        and is_string_current_page_dummy(
+            unicode_text,
+            char_idx,
+            current_page_dummy)):
         (fragment, increment) = generate_current_page_fragment(
             current_font,
             current_font_size,
             current_font_color,
             current_page_dummy,
             page_num_dummy_length,
-            page_number_presentation,
-        )
+            page_number_presentation)
         return (fragment, increment)
-    if is_string_total_pages_dummy(
-        unicode_text,
-        char_idx,
-        total_pages_dummy):
+    if (total_pages_dummy is not None
+        and page_num_dummy_length is not None
+        and page_number_presentation is not None
+        and is_string_total_pages_dummy(
+            unicode_text,
+            char_idx,
+            total_pages_dummy)):
         (fragment, increment) = generate_total_pages_fragment(
             current_font,
             current_font_size,
             current_font_color,
             total_pages_dummy,
             page_num_dummy_length,
-            page_number_presentation
-        )
+            page_number_presentation)
         return (fragment, increment)
     fragment_height = current_font._get_line_height(current_font_size)
     fragment_width = current_font._get_char_width(

@@ -18,272 +18,253 @@ class TextLine:
         self._paragraph = paragraph
         self._width = 0.0
         self._available_width = 0.0
+        self._set_textline_indent()
+        self._spaces_width_at_the_end = 0.0
+        self._spaces_at_the_end: list[Word] = []
         self._h_align = self._paragraph._h_align
         self._words: deque[Word] = deque()
         self._height: float = 0.0
         self._height_dict: dict[float, int] = {}
         self._ascent: float = 0.0
         self._ascent_dict: dict[float, int] = {}
-        self._prev_line: None | TextLine = None
-        self._next_line: None | TextLine = None
+        self._prev: None | TextLine = None
+        self._next: None | TextLine = None
         self._tabs: list[Word] = []
         self._leading: float = 0.0
         self._inner_spaces: list[Word] = []
 
-    def _append_word_right(
+    def _append_word(
         self,
-        word: Word
-        ) -> None:
+        word: Word,
+        index: int | None = None
+    ) -> None:
+        if index is None:
+            index = len(self._words)
+        if index < 0 or index > len(self._words):
+            raise IndexError(f"Index {index} out of range.")
         word._textline = self
-        self._words.append(word)
+        self._words.insert(index, word)
         self._append_height(word._height)
         self._append_ascent(word._ascent)
-        self._set_spaces_width_when_append_word_right(word)
-        self._set_word_width_right(word)
+        self._set_available_width(word)
+        self._set_spaces_width_at_the_end()
+        self._set_tab_width_if_needed(word)
+        self._merge_words_if_possible(word)
 
-    def _set_spaces_width_when_append_word_right(
+    def _pop_word(
         self,
-        word: Word
-        ) -> None:
-        if word._chars in {"\n", " "}:
-            return
-        if word._prev_word is None:
-            return
-        if word._prev_word._textline != self:
-            return
-        if word._prev_word._chars != " ":
-            return
-        spaces: deque[Word] = deque()
-        iterator = word._prev_word
-        while iterator._chars == " " and self == iterator._textline:
-            iterator._width = iterator._get_origin_width()
-            self._inner_spaces.append(iterator)
-            spaces.append(iterator)
-            self._available_width -= iterator._width
-            if iterator._prev_word is None:
-                break
-            iterator = iterator._prev_word
-        # spaces at the start of a word will not be included in justifying
-        if spaces[0] == self._words[0]:
-            for space in spaces:
-                self._available_width += space._width
-                space._width = 0.0
-                self._inner_spaces.remove(space)
-        return
+        index: int | None = None
+    ) -> Word:
+        if index is None:
+            index = len(self._words) - 1
+        if index < 0 or index > len(self._words) - 1:
+            raise IndexError(f"Index {index} out of range.")
+        word_to_remove = self._words[index]
+        self._words.remove(word_to_remove)
+        self._remove_ascent(word_to_remove._ascent)
+        self._remove_height(word_to_remove._height)
+        self._set_spaces_width_at_the_end()
+        self._available_width += word_to_remove._width
+        if word_to_remove in self._tabs:
+            self._tabs.remove(word_to_remove)
+        for tab in self._tabs:
+            self._recalculate_tab_width(tab)
+        word_to_remove._textline = None
+        if len(self._words) == 0:
+            self._remove_line()
+        if self._next is not None:
+            self._set_leading()
+        return word_to_remove
 
-    def _set_word_width_right(
-        self,
-        word: Word
-        ) -> None:
-        if word._chars == " ":
-            word._width = 0.0
-            return
-        if word._is_extendable:
-            word._extend_left()
-            self._available_width -= word._width
-            return
-        if word._chars == "\n":
-            return
-        if word._chars == "\t":
-            self._tabs.append(word)
-            word._width = self._calc_tab_width(word)
-            self._available_width -= word._width
-            return
-
-    def _append_word_left(
-        self,
-        word: Word
-        ) -> None:
-        word._textline = self
-        self._words.appendleft(word)
-        self._append_height(word._height)
-        self._append_ascent(word._ascent)
-        self._set_spaces_width_when_append_word_left(word)
-        self._set_word_width_left(word)
-
-    def _set_spaces_width_when_append_word_left(
-        self,
-        word: Word
-        ) -> None:
-        if word._chars in {"\n", " "}:
-            return
-        if word._next_word is None:
-            return
-        if word._next_word._textline != self:
-            return
-        if word._next_word._chars != " ":
-            return
-        spaces: deque[Word] = deque()
-        iterator = word._next_word
-        while iterator._chars == " " and self == iterator._textline:
-            self._inner_spaces.append(iterator)
-            spaces.append(iterator)
-            if iterator._next_word is None:
-                break
-            iterator = iterator._next_word
-        # spaces at the end of a line will not be included in justifying
-        if spaces[-1] == self._words[-1]:
-            for space in spaces:
-                self._available_width += space._width
-                space._width = 0.0
-                self._inner_spaces.remove(space)
-        return
-
-    def _set_word_width_left(
-        self,
-        word: Word
-        ) -> None:
-        if word._chars == " ":
-            word._width = word._get_origin_width()
-            self._available_width -= word._width
-            return
-        if word._is_extendable:
-            word._extend_right()
-            self._available_width -= word._width
-            return
-        if word._chars == "\n":
-            return
-        if word._chars == "\t":
-            self._tabs.append(word)
-            self._recalculate_tab_widths()
-            self._available_width -= word._width
-            return
-
-    def _split_word(
+    def _set_spaces_width_at_the_end(
         self
+    ) -> None:
+        for word in reversed(self._words):
+            if word._chars != " ":
+                break
+            if word not in self._spaces_at_the_end:
+                self._spaces_at_the_end.append(word)
+                self._spaces_width_at_the_end += word._width
+                self._available_width += word._width
+        if self._words[-1]._chars != " ":
+            self._spaces_at_the_end.clear()
+            self._available_width -= self._spaces_width_at_the_end
+            self._spaces_width_at_the_end = 0
+
+    def _set_available_width(
+        self,
+        word: Word
+    ) -> None:
+        if word._chars == "\t":
+            return
+        self._available_width -= word._width
+
+    def _set_tab_width_if_needed(
+        self,
+        word: Word
+    ) -> None:
+        if word._chars == "\t" and word not in self._tabs:
+            self._add_tab(word)
+        for tab in self._tabs:
+            self._recalculate_tab_width(tab)
+
+    def _add_tab(
+        self,
+        word: Word
         ) -> None:
-        word = Word()
-        textline = self._words[-1]._textline
-        first_fragment = self._words[-1]._fragments[0]
-        assert first_fragment._width < self._width, (
-            "Fragment width exceeds text line width.")
-        while word._width + first_fragment._width <= self._width:
-            fragment = self._words[-1]._pop_fragment_left()
-            word._add_fragment(fragment)
-            first_fragment = self._words[-1]._fragments[0]
-        word._textline = textline
-        if textline is not None:
-            textline._append_ascent(word._ascent)
-            textline._append_height(word._height)
-        word._prev_word = self._words[-1]._prev_word
-        word._next_word = self._words[-1]
-        self._words[-1]._prev_word = word
-        self._words.appendleft(word)
+        if len(self._tabs) == 0:
+            self._tabs.append(word)
+            return
+        word_index_in_words = self._words.index(word)
+        for tab in self._tabs:
+            tab_index_in_words = self._words.index(tab)
+            if word_index_in_words < tab_index_in_words:
+                tab_index_in_tabs = self._tabs.index(tab)
+                self._tabs.insert(tab_index_in_tabs, word)
+                return
+        self._tabs.append(word)
+
+    def _recalculate_tab_width(
+        self,
+        tab: Word
+    ) -> None:
+        old_tab_width = tab._width
+        tab_size = self._paragraph._tab_size
+        width = 0
+        for word in self._words:
+            if word == tab:
+                break
+            width += word._width
+        tab._width = tab_size - (width % tab_size)
+        self._available_width = (self._available_width
+                                    + old_tab_width - tab._width)
+
+    def _test_tab_width(
+        self
+    ) -> float:
+        tab_size = self._paragraph._tab_size
+        width = 0
+        for word in self._words:
+            width += word._width
+        return tab_size - (width % tab_size)
+
+    def _merge_words_if_possible(
+        self,
+        word: Word
+    ) -> None:
+        if len(self._words) == 1:
+            return
+        if not word._is_extendable:
+            return
+        word_index = self._words.index(word)
+        word_index_before = word_index - 1
+        if (word_index_before >= 0
+                and self._words[word_index_before]._is_extendable):
+            self._merge_words(
+                self._words[word_index_before],
+                self._words[word_index])
+            word_index -= 1
+        word_index_after = word_index + 1
+        if (word_index_after < len(self._words)
+                and self._words[word_index_after]._is_extendable):
+            self._merge_words(
+                self._words[word_index],
+                self._words[word_index_after])
+
+    def _merge_words(
+        self,
+        word_left: Word,
+        word_right: Word
+    ) -> None:
+        if not word_left._is_extendable and not word_right._is_extendable:
+            return
+        new_word = Word()
+        for fragment in word_left._fragments:
+            new_word._add_fragment(fragment)
+        for fragment in word_right._fragments:
+            new_word._add_fragment(fragment)
+        index = self._words.index(word_left)
+        words_with_current_page_fragments = (self.
+                                             _paragraph.
+                                             _textarea.
+                                             _words_with_current_page_fragments)
+        words_with_total_pages_fragments = (self.
+                                             _paragraph.
+                                             _textarea.
+                                             _words_with_total_pages_fragments)
+        self._words.insert(index, new_word)
+        new_word._textline = word_left._textline
+        if new_word._has_current_page_fragments():
+            words_with_current_page_fragments.append(new_word)
+        if new_word._has_total_pages_fragments():
+            words_with_total_pages_fragments.append(new_word)
+        self._words.remove(word_left)
+        if word_left in words_with_current_page_fragments:
+            words_with_current_page_fragments.remove(word_left)
+        if word_left in words_with_total_pages_fragments:
+            words_with_total_pages_fragments.remove(word_left)
+        self._words.remove(word_right)
+        if word_right in words_with_current_page_fragments:
+            words_with_current_page_fragments.remove(word_right)
+        if word_right in words_with_total_pages_fragments:
+            words_with_total_pages_fragments.remove(word_right)
+
+    # split word takes another paramether:
+    # width to split the first part of the word
+    def _split_word(
+        self,
+        right_word: Word,
+        left_width_to_split: float,
+        ) -> None:
+        if right_word not in self._words:
+            raise IndexError(f"Word {right_word._chars} "
+                             f"is not present in Textline {self._get_chars()}.")
+        left_word = Word()
+        while (left_word._width + right_word._fragments[0]._width
+                    <= left_width_to_split):
+            first_fragment = right_word._pop_fragment(0)
+            left_word._add_fragment(first_fragment)
+        if left_word._width == 0:
+            return
+        left_word._textline = self
+        word_index = self._words.index(right_word)
+        self._words.insert(word_index, left_word)
+        self._append_ascent(right_word._ascent)
+        self._append_height(right_word._height)
 
     def _can_move_first_word_from_next_line(
         self
         ) -> bool:
-        if self._next_line is None:
+        first_word = self._paragraph._get_first_word_from_next_textline(self)
+        if first_word is None:
             return False
-        if len(self._next_line._words) == 0:
-            return False
-        first_word = self._next_line._words[0]
         if first_word._chars in {" ", "\n"}:
             return True
         word_width = 0.0
         if first_word._chars == "\t":
-            word_width = self._calc_tab_width(first_word)
+            word_width = self._test_tab_width()
         else:
             word_width = first_word._width
-        spaces_width = 0.0
-        word_iterator = self._words[-1]
-        while word_iterator._chars == " ":
-            spaces_width += word_iterator._get_origin_width()
-            if word_iterator._prev_word is None:
-                break
-            word_iterator = word_iterator._prev_word
-        if (self._available_width - spaces_width - word_width) < 0.0:  # noqa: PLR2004
+        if (self._available_width
+                - self._spaces_width_at_the_end
+                - word_width) < 0:
             return False
         return True
 
-    def _move_last_word_to_next_line(
+    def _push_exceeded_words_to_next_textline(
         self
         ) -> None:
-        word = self._pop_word_right()
-        if self._next_line is None:
-            self._paragraph._generate_textline()
-            leading_diff = self._set_leading()
-            self._paragraph._change_height(leading_diff)
-        if self._next_line is None:
-            raise ValueError("Next line is missing after generating new line.")
-        self._next_line._append_word_left(word)
-
-    def _move_first_word_from_next_line(
-        self
-        ) -> None:
-        if self._next_line is None:
-            raise TypeError("Next line object is missing.")
-        word = self._next_line._pop_word_left()
-        self._append_word_right(word)
-
-    def _pop_word_right(
-        self
-        ) -> Word:
-        last_word_in_line = self._words.pop()
-        if len(self._words) == 0:
-            self._remove_line()
-        self._set_spaces_width_when_pop_word_right(last_word_in_line)
-        last_word_in_line._textline = None
-        self._remove_ascent(last_word_in_line._ascent)
-        self._remove_height(last_word_in_line._height)
-        if self._next_line is not None:
+        removed_words = deque()
+        while self._available_width < 0:
+            removed_words.appendleft(self._pop_word())
+        if self._next is None:
+            self._paragraph._create_textline()
             self._set_leading()
-        self._available_width += last_word_in_line._width
-        return last_word_in_line
+        if self._next is not None:
+            while len(removed_words) > 0:
+                self._next._append_word(removed_words.pop(), 0)
 
-    def _set_spaces_width_when_pop_word_right(
-        self,
-        word: Word
-        ) -> None:
-        if word._prev_word is None:
-            return
-        if word._prev_word._textline != self:
-            return
-        if word._prev_word._chars != " ":
-            return
-        iterator = word._prev_word
-        while iterator is not None and iterator._chars == " ":
-            self._available_width += iterator._width
-            iterator._width = 0.0
-            if iterator in self._inner_spaces:
-                self._inner_spaces.remove(iterator)
-            iterator = iterator._prev_word
-
-    def _pop_word_left(
-        self
-        ) -> Word:
-        first_word_in_line = self._words.popleft()
-        if len(self._words) == 0:
-            self._remove_line()
-        self._set_spaces_width_when_pop_word_left(first_word_in_line)
-        self._recalculate_tab_widths()
-        first_word_in_line._textline = None
-        if first_word_in_line._chars in {" ", "\t"}:
-            first_word_in_line._width = first_word_in_line._get_origin_width()
-        self._remove_ascent(first_word_in_line._ascent)
-        self._remove_height(first_word_in_line._height)
-        if self._next_line is not None:
-            self._set_leading()
-        self._available_width += first_word_in_line._width
-        return first_word_in_line
-
-    def _set_spaces_width_when_pop_word_left(
-        self,
-        word: Word
-        ) -> None:
-        if word._next_word is None:
-            return
-        if word._next_word._textline != self:
-            return
-        if word._next_word._chars != " ":
-            return
-        iterator = word._next_word
-        while iterator is not None and iterator._chars == " ":
-            if iterator in self._inner_spaces:
-                self._inner_spaces.remove(iterator)
-            iterator = iterator._next_word
-
-    def _remove_line_and_get_words(
+    def _remove_line_from_text_area(
         self
         ) -> deque[Word]:
         for word in self._words:
@@ -318,16 +299,36 @@ class TextLine:
     def _adjust_words_between_textlines(
         self
         ) -> None:
+        if self._word_width_exceeds_texline_width():
+            return
         if self._available_width < 0:
-            if len(self._words) == 1:
-                self._split_word()
-            self._move_last_word_to_next_line()
-            if self._available_width < 0:
-                self._adjust_words_between_textlines()
-        if self._can_move_first_word_from_next_line():
-            self._move_first_word_from_next_line()
-            if self._can_move_first_word_from_next_line():
-                self._adjust_words_between_textlines()
+            self._push_exceeded_words_to_next_textline()
+        self._pull_available_words_from_next_line()
+
+    def _word_width_exceeds_texline_width(
+        self,
+    ) -> bool:
+        if (self._paragraph._textarea._document.settings.text_split_words
+                and self._words[0]._width > self._width):
+            self._split_word(self._words[0], self._width)
+        if self._words[0]._width > self._width:
+            textline_index = self._paragraph._textlines.index(self)
+            paragraph_index = self._paragraph._textarea._paragraphs.index(
+                self._paragraph)
+            self._paragraph._textarea._empty_textlines_and_paragraphs_from_line(
+                textline_index,
+                paragraph_index)
+            self._paragraph._textarea._word_width_exceeds_textline_width = True
+            return True
+        return False
+
+    def _pull_available_words_from_next_line(
+        self
+    ) -> None:
+        while self._can_move_first_word_from_next_line():
+            if self._next is None:
+                raise ValueError("Next textline is not present.")
+            self._append_word(self._next._pop_word(0))
 
     def _append_height(
         self,
@@ -337,15 +338,13 @@ class TextLine:
             self._height_dict[height] = 1
         else:
             self._height_dict[height] += 1
-        height_diff = 0.0
-        if height > self._height:
-            height_diff = height - self._height
-            self._height += height_diff
-        if self._next_line is not None:
-            leading_diff = self._set_leading()
-            height_diff += leading_diff
-        if height_diff != 0.0:  # noqa: PLR2004
-            self._paragraph._change_height(height_diff)
+        if height <= self._height:
+            return
+        height_diff = height - self._height
+        self._height += height_diff
+        if self._next is not None:
+            self._set_leading()
+        self._paragraph._change_height(height_diff)
 
     def _append_ascent(
         self,
@@ -368,15 +367,14 @@ class TextLine:
             return
         del self._height_dict[height]
         if len(self._height_dict) == 0:
+            # ???????
             return
         if self._height != height:
             return
-        height_diff = 0.0
         self._height = max(self._height_dict)
         height_diff = self._height - height
-        if self._next_line is not None:
-            leading_diff = self._set_leading()
-            height_diff += leading_diff
+        if self._next is not None:
+            self._set_leading()
         self._paragraph._change_height(height_diff)
 
     def _remove_ascent(
@@ -397,46 +395,24 @@ class TextLine:
     def _remove_line(
         self
         ) -> None:
-        height_to_remove = self._height
-        if self._next_line is not None:
-            height_to_remove += self._leading
-            self._next_line._prev_line = self._prev_line
-        if self._prev_line is not None:
-            self._prev_line._next_line = self._next_line
-            height_to_remove += self._prev_line._set_leading()
+        height_to_remove = self._height + self._leading
+        if self._next is not None:
+            self._next._prev = self._prev
+        if self._prev is not None:
+            self._prev._next = self._next
+            self._prev._set_leading()
         self._leading = 0.0
-        self._next_line = None
-        self._prev_line = None
+        self._next = None
+        self._prev = None
         self._paragraph._textlines.remove(self)
         if len(self._paragraph._textlines) == 0:
             height_to_remove += (
                 self._paragraph._space_before + self._paragraph._space_after
             )
             self._paragraph._textarea._paragraphs.remove(self._paragraph)
-        self._paragraph._change_height(-height_to_remove)
+        self._paragraph._change_height(- height_to_remove)
 
-    def _calc_tab_width(
-        self,
-        word: Word
-        ) -> float:
-        tab_size = self._paragraph._tab_size
-        width = 0.0
-        while word._prev_word is not None:
-            if word._textline != word._prev_word._textline:
-                break
-            if word._chars == " ":
-                width += word._fragments[0]._width
-            width += word._prev_word._width
-            word = word._prev_word
-        return tab_size - (width % tab_size)
-
-    def _recalculate_tab_widths(
-        self
-        ) -> None:
-        for tab in self._tabs:
-            tab._width = self._calc_tab_width(tab)
-
-    def _calc_leading(
+    def _calculate_leading(
         self
         ) -> float:
         return ((self._height * self._paragraph._line_height_ratio)
@@ -444,14 +420,15 @@ class TextLine:
 
     def _set_leading(
         self
-        ) -> float:
-        if self._next_line is None:
-            leading_diff = self._leading
-            self._leading = 0.0
-            return leading_diff
-        leading_diff = self._calc_leading() - self._leading
-        self._leading += leading_diff
-        return leading_diff
+        ) -> None:
+        leading_diff = 0
+        if self._next is None:
+            leading_diff = - self._leading
+            self._leading = 0
+        else:
+            leading_diff = self._calculate_leading() - self._leading
+            self._leading += leading_diff
+        self._paragraph._change_height(leading_diff)
 
     def _set_width_and_available_space(
         self,
@@ -459,3 +436,20 @@ class TextLine:
         width_diff = width - self._width
         self._width += width_diff
         self._available_width += width_diff
+
+    def _set_textline_indent(
+        self,
+    ) -> None:
+        if (self._paragraph._prev_linked_paragraph is None
+                and len(self._paragraph._textlines) == 0):
+            self._set_width_and_available_space(
+            self._paragraph._width
+            - self._paragraph._left_indent
+            - self._paragraph._first_line_indent
+            - self._paragraph._right_indent)
+        else:
+            self._set_width_and_available_space(
+            self._paragraph._width
+            - self._paragraph._left_indent
+            - self._paragraph._hanging_indent
+            - self._paragraph._right_indent)

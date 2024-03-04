@@ -25,8 +25,6 @@ class Word:
         self._justify_space = 0.0
         self._is_extendable: bool = True
         self._should_render: bool = True
-        self._prev_word: None | Word = None
-        self._next_word: None | Word = None
         self._current_page_fragments: list[Fragment] = []
         self._total_pages_fragments: list[Fragment] = []
 
@@ -100,18 +98,10 @@ class Word:
         if self._textline is None:
             raise ValueError("Missing textline.")
         textline = self._textline
-        if self == textline._words[0]:
-            textline._set_spaces_width_when_pop_word_left(self)
-        if self == textline._words[-1]:
-            textline._set_spaces_width_when_pop_word_right(self)
-        textline._recalculate_tab_widths()
-        textline._remove_ascent(self._ascent)
-        textline._remove_height(self._height)
-        textline._words.remove(self)
-        textline._available_width += self._width
+        word_index = self._textline._words.index(self)
+        self._textline._pop_word(word_index)
         if len(textline._words) == 0:
             textline._remove_line()
-        self._textline = None
 
     def _get_origin_width(
         self
@@ -225,104 +215,49 @@ class Word:
         self._remove_ascent(first_fragment._ascent)
         return first_fragment
 
-    def _extend_right(
-        self
-        ) -> None:
-        if self._next_word is None:
-            return
-        if self._next_word._is_extendable is False:
-            return
-        if self._next_word._textline != self._textline:
-            return
-        self._fragments.extend(self._next_word._fragments)
-        self._chars += self._next_word._chars
-        self._width += self._next_word._width
-        for ascent in self._next_word._ascent_dict:
-            if ascent in self._ascent_dict:
-                self._ascent_dict[ascent] += 1
-            else:
-                self._ascent_dict[ascent] = 1
-        if self._ascent < self._next_word._ascent:
-            self._ascent = self._next_word._ascent
-        for height in self._next_word._height_dict:
-            if height in self._height_dict:
-                self._height_dict[height] += 1
-            else:
-                self._height_dict[height] = 1
-        if self._height < self._next_word._height:
-            self._height = self._next_word._height
-        # WHAT ABOUT ADJUSTING HEIGHT AND ASCEND IN TEXT LINE???????????
-        word_to_remove = self._next_word
-        self._next_word = self._next_word._next_word
-        word_to_remove._prev_word = None
-        word_to_remove._next_word = None
-        word_to_remove._textline = None
-        if self._textline is not None:
-            self._textline._words.remove(word_to_remove)
-
-    def _extend_left(
-        self
-        ) -> None:
-        if self._prev_word is None:
-            return
-        if self._prev_word._is_extendable is False:
-            return
-        if self._prev_word._textline != self._textline:
-            return
-        self._prev_word._chars += self._chars
-        self._prev_word._fragments.extend(self._fragments)
-        self._prev_word._width += self._width
-        for ascent in self._ascent_dict:
-            if ascent in self._prev_word._ascent_dict:
-                self._prev_word._ascent_dict[ascent] += self._ascent_dict[ascent]
-            else:
-                self._prev_word._ascent_dict[ascent] = self._ascent_dict[ascent]
-        if self._prev_word._ascent < self._ascent:
-            self._prev_word._ascent = self._ascent
-        for height in self._height_dict:
-            if height in self._prev_word._height_dict:
-                self._prev_word._height_dict[height] += self._height_dict[height]
-            else:
-                self._prev_word._height_dict[height] = self._height_dict[height]
-        if self._prev_word._height < self._height:
-            self._prev_word._height = self._height
-        # WHAT ABOUT ADJUSTING HEIGHT AND ASCEND IN TEXT LINE???????????
-        word_to_remove = self
-        self._prev_word._next_word = self._next_word
-        word_to_remove._prev_word = None
-        word_to_remove._next_word = None
-        if self._textline is not None:
-            self._textline._words.remove(word_to_remove)
-
-    def _calculate_tab_width(
-        self
-        ) -> float:
-        tab_size: float = 0.0
-        if (self._textline is not None
-                and self._textline._paragraph is not None
-                    and self._textline._paragraph._textarea is not None):
-            tab_size = (
-                self._textline._paragraph._textarea._document.settings.text_tab_size
-            )
-        word = self
-        width = 0.0
-        while word._prev_word is not None:
-            if word._textline != word._prev_word._textline:
-                break
-            width += word._prev_word._width
-            word = word._prev_word
-        return tab_size - (width % tab_size)
+    def _pop_fragment(
+        self,
+        index: int
+        ) -> Fragment:
+        if index < 0 or index > len(self._fragments):
+            raise IndexError(f"Fragment index {index} is out of range in word.")
+        fragment_to_remove = self._fragments[index]
+        fragment_to_remove._word = None
+        chars_left = self._chars[:index]
+        chars_right = self._chars[index + 1:]
+        self._chars = chars_left + chars_right
+        self._fragments.remove(fragment_to_remove)
+        self._width -= fragment_to_remove._width
+        self._remove_height(fragment_to_remove._height)
+        self._remove_ascent(fragment_to_remove._ascent)
+        if fragment_to_remove._is_current_page_dummy:
+            self._current_page_fragments.remove(fragment_to_remove)
+        if fragment_to_remove._is_total_pages_dummy:
+            self._total_pages_fragments.remove(fragment_to_remove)
+        return fragment_to_remove
 
     def _adjust_width_by_difference(
         self,
         width_diff: float
         ) -> None:
         self._width += width_diff
-        if self._textline is not None:
-            self._textline._available_width -= width_diff
-            self._textline._recalculate_tab_widths()
 
     def _calc_width_with_justify(
         self
         ) -> float:
         return self._width + self._justify_space
+
+    # def _split_word(
+    #     self,
+    #     left_width_to_split: float
+    # ) -> None:
+    #     left_word = Word()
+    #     while left_word._width <= left_width_to_split:
+    #         first_fragment = self._pop_fragment(0)
+    #         left_word._add_fragment(first_fragment)
+    #     if self._textline is not None:
+    #         index = self._textline._words.index(self)
+    #         self._textline._append_word(left_word, index)
+        # if textline is not None:
+        #     textline._append_ascent(word._ascent)
+        #     textline._append_height(word._height)
