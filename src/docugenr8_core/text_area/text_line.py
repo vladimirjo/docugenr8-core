@@ -318,7 +318,7 @@ class TextLine:
             self._paragraph._textarea._empty_textlines_and_paragraphs_from_line(
                 textline_index,
                 paragraph_index)
-            self._paragraph._textarea._word_width_exceeds_textline_width = True
+            self._paragraph._textarea._state_textline_width_overflow = True
             return True
         return False
 

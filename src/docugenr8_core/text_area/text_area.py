@@ -39,7 +39,7 @@ class TextArea:
         self._next_textarea: None | TextArea = None
         self._prev_textarea: None | TextArea = None
         self._accepts_additional_words: bool = True
-        self._word_width_exceeds_textline_width: bool = False
+        self._state_textline_width_overflow: bool = False
         # late binding when adding text
         self._current_font: None | Font = None
         self._current_font_size: float = 0
@@ -54,27 +54,16 @@ class TextArea:
         unicode_text: str,
     ) -> None:
         self._save_font_attributes_from_document_settings()
-        if self._current_font is None:
-            raise ValueError("Current font must be set in settings.")
-        words = create_words(
-            unicode_text,
-            self._current_font,
-            self._current_font_size,
-            self._current_font_color,
-            self._document.settings.page_num_current_page_dummy,
-            self._document.settings.page_num_total_pages_dummy,
-            self._document.settings.page_num_dummy_length,
-            self._document.settings.page_num_presentation)
-        self._insert_words_into_buffer(words)
-        self._move_words_in_all_linked_areas()
+        self._create_and_insert_words_into_buffer(unicode_text)
+        self._distribute_words_in_all_areas()
 
-    def _move_words_in_all_linked_areas(
+    def _distribute_words_in_all_areas(
         self
         ) -> None:
         textarea = self._get_the_first_textarea_to_accept_words()
         if textarea is None:
             return
-        textarea._move_words_between_areas()
+        textarea._pull_and_push_words()
 
     def _save_font_attributes_from_document_settings(
         self
@@ -89,10 +78,21 @@ class TextArea:
         if self._current_font is None:
             raise TypeError("The font object is missing.")
 
-    def _insert_words_into_buffer(
+    def _create_and_insert_words_into_buffer(
         self,
-        words: list[Word]
+        unicode_text: str,
         ) -> None:
+        if self._current_font is None:
+            raise ValueError("Current font must be set in settings.")
+        words = create_words(
+            unicode_text,
+            self._current_font,
+            self._current_font_size,
+            self._current_font_color,
+            self._document.settings.page_num_current_page_dummy,
+            self._document.settings.page_num_total_pages_dummy,
+            self._document.settings.page_num_dummy_length,
+            self._document.settings.page_num_presentation)
         buffer = self._get_buffer()
         buffer.extend(words)
 
@@ -137,7 +137,7 @@ class TextArea:
         for paragraph in self._paragraphs:
             paragraph._adjust_words_between_textlines()
 
-    def _move_words_between_areas(
+    def _pull_and_push_words(
         self
         ) -> None:
         if self._available_height > 0:
@@ -156,8 +156,8 @@ class TextArea:
             self._create_paragraph_if_needed_for_incoming_word(next_word)
             self._remove_word(next_word)
             self._append_word_to_area(next_word)
-            if self._word_width_exceeds_textline_width:
-                self._word_width_exceeds_textline_width = False
+            if self._state_textline_width_overflow:
+                self._state_textline_width_overflow = False
                 break
 
     def _create_paragraph_if_needed_for_incoming_word(
@@ -204,7 +204,7 @@ class TextArea:
             if len(self._paragraphs) == 0:
                 self._next_textarea._empty_textarea()
             else:
-                self._next_textarea._move_words_between_areas()
+                self._next_textarea._pull_and_push_words()
 
     def _generate_paragraph_from_buffer(
         self,
@@ -360,7 +360,7 @@ class TextArea:
                     paragraph = fragment._word._textline._paragraph
                     paragraph._adjust_words_between_textlines()
                     textarea = fragment._word._textline._paragraph._textarea
-                    textarea._move_words_between_areas()
+                    textarea._pull_and_push_words()
 
     def _build_total_pages_fragments(
         self,
@@ -386,7 +386,7 @@ class TextArea:
                     paragraph = fragment._word._textline._paragraph
                     paragraph._adjust_words_between_textlines()
                     textarea = fragment._word._textline._paragraph._textarea
-                    textarea._move_words_between_areas()
+                    textarea._pull_and_push_words()
 
     def link_textarea(
         self,
@@ -398,7 +398,7 @@ class TextArea:
         last_textarea._next_textarea = next_textarea
         next_textarea._buffer = last_textarea._buffer
         last_textarea._buffer = deque()
-        self._move_words_in_all_linked_areas()
+        self._distribute_words_in_all_areas()
 
     def set_width(
         self,
@@ -407,7 +407,7 @@ class TextArea:
         self._width = new_width
         for paragraph in self._paragraphs:
             paragraph._set_paragraph_width(new_width)
-        self._move_words_in_all_linked_areas()
+        self._distribute_words_in_all_areas()
 
     def _empty_textlines_and_paragraphs_from_line(
         self,
@@ -416,12 +416,13 @@ class TextArea:
     ) -> None:
         removed_words = deque()
         first_paragraph_to_remove_words_from = self._paragraphs[paragraph_index]
+        textline = first_paragraph_to_remove_words_from._textlines[textline_index]
         while (textline_index
-               < len(first_paragraph_to_remove_words_from._textlines)):
-            texline = (self._paragraphs[paragraph_index]
-                           ._textlines[textline_index])
-            removed_words.extend(texline._remove_line_from_text_area())
-            textline_index += 1
+                < len(first_paragraph_to_remove_words_from._textlines)):
+            textline = (self
+                        ._paragraphs[paragraph_index]
+                        ._textlines[textline_index])
+            removed_words.extend(textline._remove_line_from_text_area())
         if (len(self._paragraphs) > 0
             and (first_paragraph_to_remove_words_from
                     == self._paragraphs[paragraph_index])):
@@ -429,13 +430,13 @@ class TextArea:
         while paragraph_index < len(self._paragraphs):
             paragraph = self._paragraphs[paragraph_index]
             removed_words.extend(paragraph._remove_paragraph_from_text_area())
-            # paragraph_index += 1
         textarea_to_empty = self._next_textarea
         while textarea_to_empty is not None:
             removed_words.extend(textarea_to_empty._empty_textarea())
             textarea_to_empty = textarea_to_empty._next_textarea
         word_buffer = self._get_buffer()
-        word_buffer.extendleft(removed_words)
+        removed_words.extend(word_buffer)
+        self._set_buffer(removed_words)
 
     def _empty_textarea(
         self

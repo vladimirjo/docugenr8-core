@@ -1,6 +1,6 @@
 from __future__ import annotations
-from collections import deque
 
+from collections import deque
 from typing import TYPE_CHECKING
 
 
@@ -210,6 +210,7 @@ class Paragraph:
         self
     ) -> deque[Word]:
         removed_words = deque()
-        for textline in self._textlines:
-            removed_words.extend(textline._remove_line_from_text_area())
+        while len(self._textlines) > 0:
+            removed_words.extend(
+                self._textlines[0]._remove_line_from_text_area())
         return removed_words
