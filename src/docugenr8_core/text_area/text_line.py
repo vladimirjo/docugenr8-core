@@ -79,6 +79,8 @@ class TextLine:
     def _set_spaces_width_at_the_end(
         self
     ) -> None:
+        if len(self._words) == 0:
+            return
         for word in reversed(self._words):
             if word._chars != " ":
                 break
@@ -194,6 +196,15 @@ class TextLine:
                                              _words_with_total_pages_fragments)
         self._words.insert(index, new_word)
         new_word._textline = word_left._textline
+        textline = new_word._textline
+        if textline is None:
+            raise ValueError("Textline is not present.")
+        textline._remove_ascent(word_left._ascent)
+        textline._remove_ascent(word_right._ascent)
+        textline._remove_height(word_left._height)
+        textline._remove_height(word_right._height)
+        textline._append_ascent(new_word._ascent)
+        textline._append_height(new_word._height)
         if new_word._has_current_page_fragments():
             words_with_current_page_fragments.append(new_word)
         if new_word._has_total_pages_fragments():
@@ -264,17 +275,15 @@ class TextLine:
             while len(removed_words) > 0:
                 self._next._append_word(removed_words.pop(), 0)
 
-    def _remove_line_from_text_area(
-        self
-        ) -> deque[Word]:
-        for word in self._words:
-            if word._has_current_page_fragments:
-                word._remove_page_number()
-            if word._has_total_pages_fragments:
-                word._remove_page_number()
-            word._reset_all_stats()
-        self._remove_line()
-        return self._words
+    def _remove_line_and_get_words(
+        self,
+    ) -> deque[Word]:
+        removed_words = deque()
+        while len(self._words) > 0:
+            self._words[0]._remove_page_number()
+            removed_word = self._pop_word(0)
+            removed_words.append(removed_word)
+        return removed_words
 
     def _is_first_line_in_paragraph(
         self
@@ -404,13 +413,14 @@ class TextLine:
         self._leading = 0.0
         self._next = None
         self._prev = None
-        self._paragraph._textlines.remove(self)
-        if len(self._paragraph._textlines) == 0:
-            height_to_remove += (
-                self._paragraph._space_before + self._paragraph._space_after
-            )
-            self._paragraph._textarea._paragraphs.remove(self._paragraph)
-        self._paragraph._change_height(- height_to_remove)
+        paragraph = self._paragraph
+        paragraph._textlines.remove(self)
+        paragraph._change_height(- height_to_remove)
+        if len(paragraph._textlines) == 0:
+            textarea = paragraph._textarea
+            textarea._available_height -= (
+                paragraph._space_before + paragraph._space_after)
+            textarea._paragraphs.remove(paragraph)
 
     def _calculate_leading(
         self

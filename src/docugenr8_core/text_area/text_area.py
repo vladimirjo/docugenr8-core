@@ -38,7 +38,7 @@ class TextArea:
         self._buffer: deque[Word] = deque()
         self._next_textarea: None | TextArea = None
         self._prev_textarea: None | TextArea = None
-        self._accepts_additional_words: bool = True
+        self._state_accepts_words: bool = True
         self._state_textline_width_overflow: bool = False
         # late binding when adding text
         self._current_font: None | Font = None
@@ -124,7 +124,7 @@ class TextArea:
         self
         ) -> TextArea | None:
         current_textarea = self
-        while current_textarea._accepts_additional_words is False:
+        while current_textarea._state_accepts_words is False:
             if current_textarea._next_textarea is not None:
                 current_textarea = current_textarea._next_textarea
             else:
@@ -143,36 +143,29 @@ class TextArea:
         if self._available_height > 0:
             self._pull_next_available_word()
         if self._available_height < 0:
-            self._accepts_additional_words = False
+            self._state_accepts_words = False
             self._push_excess_words_to_next_available_place()
 
     def _pull_next_available_word(
         self
         ) -> None:
         while self._available_height >= 0:
-            next_word = self._get_next_available_word()
+            next_word = self._get_next_word()
             if next_word is None:
                 return
-            self._create_paragraph_if_needed_for_incoming_word(next_word)
-            self._remove_word(next_word)
-            self._append_word_to_area(next_word)
+            if next_word._is_from_textarea():
+                self._create_paragraph_from_textarea_if_needed(next_word)
+                next_word._remove_page_number()
+                next_word._remove_from_line()
+            if next_word._is_from_buffer():
+                self._create_paragraph_from_buffer_if_needed()
+                self._get_buffer().remove(next_word)
+            self._append_word_to_textarea(next_word)
             if self._state_textline_width_overflow:
                 self._state_textline_width_overflow = False
                 break
 
-    def _create_paragraph_if_needed_for_incoming_word(
-        self,
-        word: Word
-        ) -> None:
-        paragraph = word._get_paragraph()
-        if paragraph is None:
-            self._generate_paragraph_from_buffer()
-        else:
-            self._generate_paragraph_from_text_area(
-                word,
-                paragraph)
-
-    def _append_word_to_area(
+    def _append_word_to_textarea(
         self,
         word: Word
         ) -> None:
@@ -187,14 +180,13 @@ class TextArea:
         ) -> deque[Word] | None:
         textline_to_push = self._paragraphs[-1]._textlines[-1]
         while self._available_height < 0:
+            words_to_push = textline_to_push._remove_line_and_get_words()
             if self._next_textarea is not None:
                 self._next_textarea._generate_paragraph_when_pushing_words(
                     textline_to_push
                 )
-                words_to_push = textline_to_push._remove_line_from_text_area()
                 self._next_textarea._add_words_front_to_textarea(words_to_push)
             else:
-                words_to_push = textline_to_push._remove_line_from_text_area()
                 words_to_push.extend(self._get_buffer())
                 self._set_buffer(words_to_push)
             if len(self._paragraphs) == 0:
@@ -206,7 +198,7 @@ class TextArea:
             else:
                 self._next_textarea._pull_and_push_words()
 
-    def _generate_paragraph_from_buffer(
+    def _create_paragraph_from_buffer_if_needed(
         self,
     ) -> None:
         if len(self._paragraphs) == 0:
@@ -220,21 +212,23 @@ class TextArea:
         if self._paragraphs[-1]._ends_with_br:
             self._paragraphs.append(Paragraph(self))
 
-    def _generate_paragraph_from_text_area(
+    def _create_paragraph_from_textarea_if_needed(
         self,
-        word: Word,
-        paragraph: Paragraph
+        next_word: Word,
         ) -> None:
-        if word._is_first_word_in_paragraph():
-            if word._textline is not None:
-                paragraph._set_non_first_line_indent(word._textline)
+        paragraph = next_word._get_paragraph()
+        if paragraph is None:
+            raise TypeError("Next word is missing paragraph object.")
+        if next_word._is_first_word_in_paragraph():
+            if next_word._textline is not None:
+                paragraph._set_non_first_line_indent(next_word._textline)
             new_paragraph = Paragraph(self)
             self._paragraphs.append(new_paragraph)
             new_paragraph._copy_paragraph_parameters_from(paragraph)
             new_paragraph._next_linked_paragraph = paragraph
             paragraph._prev_linked_paragraph = new_paragraph
             return
-        if word._is_last_word_in_paragraph():
+        if next_word._is_last_word_in_paragraph():
             self._paragraphs[-1]._next_linked_paragraph = None
             paragraph._prev_linked_paragraph = None
             return
@@ -282,16 +276,6 @@ class TextArea:
             if textline_to_push._paragraph is not None:
                 textline_to_push._paragraph._next_linked_paragraph = None
 
-    def _remove_word(
-        self,
-        word: Word
-        ) -> None:
-        if word._textline is None:
-            self._get_buffer().remove(word)
-        else:
-            word._remove_page_number()
-            word._remove_from_line()
-
     def _add_words_front_to_textarea(
         self,
         words: deque[Word]
@@ -301,7 +285,7 @@ class TextArea:
             self._paragraphs[0]._textlines[0]._append_word(word, 0)
         self._paragraphs[0]._adjust_words_between_textlines()
 
-    def _get_next_available_word(
+    def _get_next_word(
         self
         ) -> Word | None:
         """gets the next word from either next paragraph if there is one,
@@ -422,7 +406,7 @@ class TextArea:
             textline = (self
                         ._paragraphs[paragraph_index]
                         ._textlines[textline_index])
-            removed_words.extend(textline._remove_line_from_text_area())
+            removed_words.extend(textline._remove_line_and_get_words())
         if (len(self._paragraphs) > 0
             and (first_paragraph_to_remove_words_from
                     == self._paragraphs[paragraph_index])):

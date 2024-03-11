@@ -28,25 +28,7 @@ class Word:
         self._current_page_fragments: list[Fragment] = []
         self._total_pages_fragments: list[Fragment] = []
 
-    def _remove_page_number(
-        self
-        ) -> None:
-        if self._textline is None:
-            return
-        if self._textline._paragraph is None:
-            return
-        if self._textline._paragraph._textarea is None:
-            return
-        words_with_current_page_fragments = (
-            self._textline._paragraph._textarea._words_with_current_page_fragments
-        )
-        words_with_total_pages_fragments = (
-            self._textline._paragraph._textarea._words_with_total_pages_fragments
-        )
-        if self in words_with_current_page_fragments:
-            words_with_current_page_fragments.remove(self)
-        if self in words_with_total_pages_fragments:
-            words_with_total_pages_fragments.remove(self)
+
 
     def _has_current_page_fragments(
         self
@@ -97,11 +79,30 @@ class Word:
         ) -> None:
         if self._textline is None:
             raise ValueError("Missing textline.")
-        textline = self._textline
         word_index = self._textline._words.index(self)
         self._textline._pop_word(word_index)
-        if len(textline._words) == 0:
-            textline._remove_line()
+
+
+    def _remove_page_number(
+        self
+    ) -> None:
+        if self._textline is None:
+            return
+        words_with_current_page_fragments = (
+            self
+                ._textline
+                ._paragraph._textarea
+                ._words_with_current_page_fragments)
+        words_with_total_pages_fragments = (
+            self
+                ._textline
+                ._paragraph
+                ._textarea
+                ._words_with_total_pages_fragments)
+        if self in words_with_current_page_fragments:
+            words_with_current_page_fragments.remove(self)
+        if self in words_with_total_pages_fragments:
+            words_with_total_pages_fragments.remove(self)
 
     def _get_origin_width(
         self
@@ -111,12 +112,12 @@ class Word:
             width += fragment._width
         return width
 
-    def _reset_all_stats(
-        self
-        ) -> None:
-        self._textline = None
-        if self._chars in {" ", "\t"}:
-            self._width = self._get_origin_width()
+    # def _reset_all_stats(
+    #     self
+    #     ) -> None:
+    #     self._textline = None
+    #     if self._chars in {" ", "\t"}:
+    #         self._width = self._get_origin_width()
 
     def _append_height(
         self,
@@ -246,6 +247,20 @@ class Word:
         self
         ) -> float:
         return self._width + self._justify_space
+
+    def _is_from_textarea(
+        self,
+    ) -> bool:
+        if self._get_paragraph() is not None:
+            return True
+        return False
+
+    def _is_from_buffer(
+        self
+    ) -> bool:
+        if self._get_paragraph() is None:
+            return True
+        return False
 
     # def _split_word(
     #     self,

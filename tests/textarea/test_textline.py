@@ -80,7 +80,7 @@ def test__textline_delete_textline(doc_with_fonts):
                                          + ta._paragraphs[0]._textlines[2]._height
                                          + ta._paragraphs[0]._textlines[2]._leading
                                          + ta._paragraphs[0]._space_after)
-    removed_words = ta._paragraphs[0]._textlines[1]._remove_line_from_text_area()
+    removed_words = ta._paragraphs[0]._textlines[1]._remove_line_and_get_words()
     assert len(ta._paragraphs[0]._textlines) == 2
     assert ta._paragraphs[0]._textlines[0]._prev == None
     assert ta._paragraphs[0]._textlines[0]._next == ta._paragraphs[0]._textlines[1]
@@ -132,3 +132,27 @@ def test__textarea_word_exceed_textarea_height(doc_with_fonts):
     words_buffer = ta._get_buffer()
     assert len(ta._paragraphs) == 0
     assert len(words_buffer) == 5
+
+def test__append_and_remove_words(doc_with_fonts):
+    doc_with_fonts.settings.paragraph_space_before = 0
+    doc_with_fonts.settings.paragraph_space_after = 0
+    doc_with_fonts.settings.paragraph_first_line_indent = 0
+    doc_with_fonts.settings.paragraph_hanging_indent = 0
+    doc_with_fonts.settings.paragraph_left_indent = 0
+    doc_with_fonts.settings.paragraph_right_indent = 0
+    doc_with_fonts.settings.text_line_height_ratio = 1
+    doc_with_fonts.settings.text_split_words = False
+    doc_with_fonts.settings.font_size = 10
+    ta = doc_with_fonts.create_textarea(0, 0, 120, 20)
+    ta.add_text("aa bb cc")
+    doc_with_fonts.settings.font_current = "font2"
+    doc_with_fonts.settings.font_size = 15
+    ta.add_text("dd ee ff")
+    assert len(ta._paragraphs) == 1
+    assert len(ta._paragraphs[0]._textlines) == 1
+    assert len(ta._paragraphs[0]._textlines[0]._words) == 9
+    textline = ta._paragraphs[0]._textlines[0]
+    while len(textline._words) > 0:
+        textline._words[-1]._remove_from_line()
+    assert len(ta._paragraphs) == 0
+    assert ta._available_height == 20

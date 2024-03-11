@@ -212,5 +212,5 @@ class Paragraph:
         removed_words = deque()
         while len(self._textlines) > 0:
             removed_words.extend(
-                self._textlines[0]._remove_line_from_text_area())
+                self._textlines[0]._remove_line_and_get_words())
         return removed_words
