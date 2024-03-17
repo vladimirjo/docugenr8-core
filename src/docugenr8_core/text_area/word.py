@@ -112,13 +112,6 @@ class Word:
             width += fragment._width
         return width
 
-    # def _reset_all_stats(
-    #     self
-    #     ) -> None:
-    #     self._textline = None
-    #     if self._chars in {" ", "\t"}:
-    #         self._width = self._get_origin_width()
-
     def _append_height(
         self,
         height: float
@@ -261,18 +254,3 @@ class Word:
         if self._get_paragraph() is None:
             return True
         return False
-
-    # def _split_word(
-    #     self,
-    #     left_width_to_split: float
-    # ) -> None:
-    #     left_word = Word()
-    #     while left_word._width <= left_width_to_split:
-    #         first_fragment = self._pop_fragment(0)
-    #         left_word._add_fragment(first_fragment)
-    #     if self._textline is not None:
-    #         index = self._textline._words.index(self)
-    #         self._textline._append_word(left_word, index)
-        # if textline is not None:
-        #     textline._append_ascent(word._ascent)
-        #     textline._append_height(word._height)
