@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .fragment import Fragment
     from .paragraph import Paragraph
-    from .text_line import TextLine
+    from .textline import TextLine
     from .word import Word
 
 class Word:

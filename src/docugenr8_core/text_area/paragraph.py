@@ -5,10 +5,10 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from .text_area import TextArea
+    from .textarea import TextArea
     from .word import Word
 
-from .text_line import TextLine
+from .textline import TextLine
 
 
 class Paragraph:

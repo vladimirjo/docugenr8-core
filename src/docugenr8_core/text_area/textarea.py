@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from docugenr8_core.document import Document
     from docugenr8_core.font import Font
 
-    from .text_line import TextLine
+    from .textline import TextLine
     from .word import Word
 
 from .paragraph import Paragraph

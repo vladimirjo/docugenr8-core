@@ -6,8 +6,8 @@ from docugenr8_shared.dto import DtoWord
 
 from .text_area.fragment import Fragment
 from .text_area.paragraph import Paragraph
-from .text_area.text_area import TextArea
-from .text_area.text_line import TextLine
+from .text_area.textarea import TextArea
+from .text_area.textline import TextLine
 from .text_area.word import Word
 
 

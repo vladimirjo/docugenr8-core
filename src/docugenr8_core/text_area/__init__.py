@@ -1,1 +1,1 @@
-from .text_area import TextArea as TextArea
+from .textarea import TextArea as TextArea
