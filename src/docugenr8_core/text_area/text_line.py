@@ -178,7 +178,7 @@ class TextLine:
         word_left: Word,
         word_right: Word
     ) -> None:
-        if not word_left._is_extendable and not word_right._is_extendable:
+        if not word_left._is_extendable or not word_right._is_extendable:
             return
         new_word = Word()
         for fragment in word_left._fragments:

@@ -74,4 +74,6 @@ def doc_with_fonts(font1, font2):
     doc.settings.paragraph_hanging_indent = 0
     doc.settings.paragraph_left_indent = 0
     doc.settings.paragraph_right_indent = 0
+    doc.settings.paragraph_space_after = 0
+    doc.settings.paragraph_space_before = 0
     return doc
