@@ -82,8 +82,28 @@ class Word:
         word_index = self._textline._words.index(self)
         self._textline._pop_word(word_index)
 
+    def _add_page_number_to_textarea(
+        self
+    ) -> None:
+        if self._textline is None:
+            return
+        words_with_current_page_fragments = (
+            self
+                ._textline
+                ._paragraph._textarea
+                ._words_with_current_page_fragments)
+        words_with_total_pages_fragments = (
+            self
+                ._textline
+                ._paragraph
+                ._textarea
+                ._words_with_total_pages_fragments)
+        if self._has_current_page_fragments():
+            words_with_current_page_fragments.append(self)
+        if self._has_total_pages_fragments():
+            words_with_total_pages_fragments.append(self)
 
-    def _remove_page_number(
+    def _remove_page_number_from_textarea(
         self
     ) -> None:
         if self._textline is None:

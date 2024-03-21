@@ -156,3 +156,34 @@ def test__append_and_remove_words(doc_with_fonts):
         textline._words[-1]._remove_from_line()
     assert len(ta._paragraphs) == 0
     assert ta._available_height == 20
+
+def test__word_split(doc_with_fonts):
+    ta = doc_with_fonts.create_textarea(0, 0, 50, 10)
+    ta.add_text("ab%%pn%%cd%%tp%%ef")
+    textline = ta._paragraphs[0]._textlines[0]
+    word = ta._paragraphs[0]._textlines[0]._words[0]
+    assert len(ta._paragraphs[0]._textlines[0]._words[0]._fragments) == 8
+    assert len(ta._words_with_current_page_fragments) == 1
+    assert ta._words_with_current_page_fragments[0] == textline._words[0]
+    assert len(ta._words_with_total_pages_fragments) == 1
+    assert ta._words_with_total_pages_fragments[0] == textline._words[0]
+    textline = ta._paragraphs[0]._textlines[0]
+    word = ta._paragraphs[0]._textlines[0]._words[0]
+    textline._split_word(word, 25)
+    assert len(textline._words) == 2
+    assert len(ta._words_with_current_page_fragments) == 1
+    assert ta._words_with_current_page_fragments[0] == textline._words[0]
+    assert len(ta._words_with_total_pages_fragments) == 1
+    assert ta._words_with_total_pages_fragments[0] == textline._words[1]
+
+def test__merge_words(doc_with_fonts):
+    ta = doc_with_fonts.create_textarea(0, 0, 50, 10)
+    ta.add_text("ab%%pn%%c")
+    ta.add_text("d%%tp%%ef")
+    textline = ta._paragraphs[0]._textlines[0]
+    assert len(ta._paragraphs[0]._textlines[0]._words) == 1
+    assert len(ta._paragraphs[0]._textlines[0]._words[0]._fragments) == 8
+    assert len(ta._words_with_current_page_fragments) == 1
+    assert ta._words_with_current_page_fragments[0] == textline._words[0]
+    assert len(ta._words_with_total_pages_fragments) == 1
+    assert ta._words_with_total_pages_fragments[0] == textline._words[0]

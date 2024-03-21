@@ -186,39 +186,24 @@ class TextLine:
         for fragment in word_right._fragments:
             new_word._add_fragment(fragment)
         index = self._words.index(word_left)
-        words_with_current_page_fragments = (self.
-                                             _paragraph.
-                                             _textarea.
-                                             _words_with_current_page_fragments)
-        words_with_total_pages_fragments = (self.
-                                             _paragraph.
-                                             _textarea.
-                                             _words_with_total_pages_fragments)
         self._words.insert(index, new_word)
         new_word._textline = word_left._textline
+        new_word._add_page_number_to_textarea()
         textline = new_word._textline
         if textline is None:
             raise ValueError("Textline is not present.")
+        textline._append_ascent(new_word._ascent)
+        textline._append_height(new_word._height)
+
         textline._remove_ascent(word_left._ascent)
         textline._remove_ascent(word_right._ascent)
         textline._remove_height(word_left._height)
         textline._remove_height(word_right._height)
-        textline._append_ascent(new_word._ascent)
-        textline._append_height(new_word._height)
-        if new_word._has_current_page_fragments():
-            words_with_current_page_fragments.append(new_word)
-        if new_word._has_total_pages_fragments():
-            words_with_total_pages_fragments.append(new_word)
+
+        word_left._remove_page_number_from_textarea()
+        word_right._remove_page_number_from_textarea()
         self._words.remove(word_left)
-        if word_left in words_with_current_page_fragments:
-            words_with_current_page_fragments.remove(word_left)
-        if word_left in words_with_total_pages_fragments:
-            words_with_total_pages_fragments.remove(word_left)
         self._words.remove(word_right)
-        if word_right in words_with_current_page_fragments:
-            words_with_current_page_fragments.remove(word_right)
-        if word_right in words_with_total_pages_fragments:
-            words_with_total_pages_fragments.remove(word_right)
 
     # split word takes another paramether:
     # width to split the first part of the word
@@ -240,6 +225,9 @@ class TextLine:
         left_word._textline = self
         word_index = self._words.index(right_word)
         self._words.insert(word_index, left_word)
+        right_word._remove_page_number_from_textarea()
+        left_word._add_page_number_to_textarea()
+        right_word._add_page_number_to_textarea()
         self._append_ascent(right_word._ascent)
         self._append_height(right_word._height)
 
@@ -280,7 +268,7 @@ class TextLine:
     ) -> deque[Word]:
         removed_words = deque()
         while len(self._words) > 0:
-            self._words[0]._remove_page_number()
+            self._words[0]._remove_page_number_from_textarea()
             removed_word = self._pop_word(0)
             removed_words.append(removed_word)
         return removed_words

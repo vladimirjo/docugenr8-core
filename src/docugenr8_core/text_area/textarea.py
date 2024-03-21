@@ -138,7 +138,7 @@ class TextArea:
     def _pull_and_push_words(
         self
         ) -> None:
-        if self._available_height > 0:
+        if self._available_height >= 0:
             self._pull_next_available_word()
         if self._available_height < 0:
             self._state_accepts_words = False
@@ -153,7 +153,7 @@ class TextArea:
                 return
             if next_word._is_from_textarea():
                 self._create_paragraph_from_textarea_if_needed(next_word)
-                next_word._remove_page_number()
+                next_word._remove_page_number_from_textarea()
                 next_word._remove_from_line()
             if next_word._is_from_buffer():
                 self._create_paragraph_from_buffer_if_needed()

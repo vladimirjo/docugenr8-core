@@ -19,5 +19,5 @@ class Settings:
         self.paragraph_space_after: float = 10.0
         self.page_num_current_page_dummy: str = "%%pn%%"
         self.page_num_total_pages_dummy: str = "%%tp%%"
-        self.page_num_dummy_length: int = 3
+        self.page_num_dummy_length: int = 2
         self.page_num_presentation: Callable[[int], str] = (str)
