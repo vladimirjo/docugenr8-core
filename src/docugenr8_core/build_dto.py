@@ -73,7 +73,7 @@ def _generate_dto_text_line(
     dto_text_line.space_after = text_line._leading
     dto_text_line.paragraph_h_align = dto_paragraph.h_align
     x_offset = 0.0
-    # justify_spacing = 0.0
+    justify_space = 0.0
     match dto_text_line.paragraph_h_align:
         case "left":
             pass
@@ -82,34 +82,19 @@ def _generate_dto_text_line(
         case "center":
             x_offset = (text_line._available_width) / 2
         case "justify":
-            if (len(text_line._inner_spaces) > 0
-                    and not text_line._is_last_line_in_paragraph()):
-                justify_space = (
-                    text_line._available_width) / len(text_line._inner_spaces)
-                if justify_space > 0:
-                    for inner_space in text_line._inner_spaces:
-                        inner_space._justify_space = justify_space
+            justify_space = calculate_justify_space(text_line)
     x += x_offset
     for word in text_line._words:
-        # if (word in text_line.inner_spaces
-        #         and not text_line._is_last_line_in_paragraph()):
-        #     x += justify_spacing / 2
         dto_word = _generate_dto_word(
             x,
             y + (text_line._ascent - word._ascent),
             dto_text_line,
             word)
         dto_text_line.words.append(dto_word)
-        # if (word in text_line.inner_spaces
-        #         and not text_line._is_last_line_in_paragraph()):
-        #     x += justify_spacing / 2
-        # if text_line._is_last_line_in_paragraph():
-        #     x += dto_word._width
-        # else:
-        x += dto_word.width + dto_word.justify_space
-    # y += dto_text_line.height
-    # y += dto_text_line.space_after
-    # y += dto_text_line.justify_padding_after
+        if word._chars == " ":
+            x += dto_word.width + justify_space
+        else:
+            x += dto_word.width
     return dto_text_line
 
 def _generate_dto_paragraph(
@@ -237,3 +222,48 @@ def _generate_dto_text_area(
         if paragraph != text_area._paragraphs[-1]:
             y += between_paragraphs_padding
     return dto_text_area
+
+def textline_has_only_empty_spaces(textline: TextLine) -> bool:
+    return all(word._chars in {" ", "\t", "\n"} for word in textline._words)
+
+def textline_has_only_one_word(textline: TextLine) -> bool:
+    if len(textline._words) <= 1:
+        return True
+    return False
+
+
+
+def calculate_justify_space(
+    textline: TextLine
+) -> float:
+    def get_index_first_not_empty_space_word(textline: TextLine) -> int:
+        for index, word in enumerate(textline._words):
+            if word._chars not in {" ", "\t", "\n"}:
+                return index
+        raise ValueError("Could not obtain index for the first word that"
+                        " is not empty space.")
+
+    def get_index_last_not_empty_space_word(textline: TextLine) -> int:
+        for index, word in enumerate(reversed(textline._words)):
+            if word._chars not in {" ", "\t", "\n"}:
+                return len(textline._words) - index - 1
+        raise ValueError("Could not obtain index for the last word that"
+                        " is not empty space.")
+
+    if textline_has_only_empty_spaces(textline):
+        return 0
+    if textline_has_only_one_word(textline):
+        return 0
+    if textline._is_last_line_in_paragraph():
+        return 0
+    if textline._available_width == 0:
+        return 0
+    start_pos = get_index_first_not_empty_space_word(textline)
+    end_pos = get_index_last_not_empty_space_word(textline)
+    num_inner_words = 0
+    for i in range(start_pos, end_pos):
+        if textline._words[i]._chars == " ":
+            num_inner_words += 1
+    if num_inner_words == 0:
+        return 0
+    return textline._available_width / num_inner_words

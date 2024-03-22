@@ -26,7 +26,9 @@ def font1() -> Font:
         font_size,
         ) -> float:
         return 10
+
     font1 = MagicMock(spec=Font)
+    font1.raw_data = bytes()
     font1._get_char_width.side_effect  = font1_get_char_width
     font1._get_ascent.side_effect  = font1_get_ascent
     font1._get_descent.side_effect  = font1_get_descent
@@ -57,6 +59,7 @@ def font2() -> Font:
         ) -> float:
         return 20
     font2 = MagicMock(spec=Font)
+    font2.raw_data = bytes()
     font2._get_char_width.side_effect  = font2_get_char_width
     font2._get_ascent.side_effect  = font2_get_ascent
     font2._get_descent.side_effect  = font2_get_descent
