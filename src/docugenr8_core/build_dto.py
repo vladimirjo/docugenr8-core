@@ -223,19 +223,17 @@ def _generate_dto_text_area(
             y += between_paragraphs_padding
     return dto_text_area
 
-def textline_has_only_empty_spaces(textline: TextLine) -> bool:
-    return all(word._chars in {" ", "\t", "\n"} for word in textline._words)
-
-def textline_has_only_one_word(textline: TextLine) -> bool:
-    if len(textline._words) <= 1:
-        return True
-    return False
-
-
-
 def calculate_justify_space(
     textline: TextLine
 ) -> float:
+    def textline_has_only_empty_spaces(textline: TextLine) -> bool:
+        return all(word._chars in {" ", "\t", "\n"} for word in textline._words)
+
+    def textline_has_only_one_word(textline: TextLine) -> bool:
+        if len(textline._words) <= 1:
+            return True
+        return False
+
     def get_index_first_not_empty_space_word(textline: TextLine) -> int:
         for index, word in enumerate(textline._words):
             if word._chars not in {" ", "\t", "\n"}:
