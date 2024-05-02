@@ -4,7 +4,7 @@
 version=$(sed 's/[^0-9.]//g' version.txt)
 
 # Package name
-package_name="docugenr8-cicd"
+package_name="docugenr8-core"
 
 # Fetch package versions from Test PyPI
 versions=$(curl -sSL https://test.pypi.org/simple/${package_name}/ | grep -o '<a [^>]*>.*</a>' | sed -e 's/<[^>]*>//g')
