@@ -30,7 +30,6 @@ jobs:
 
             - name: Publish Package
               run: |
-                  echo $PROD_PYPI_TOKEN
                   tox -e publish
               env:
                   PROD_PYPI_TOKEN: ${{ secrets.PROD_PYPI_TOKEN }}
