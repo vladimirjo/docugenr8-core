@@ -34,10 +34,10 @@ def _generate_dto_fragment(
 def _generate_dto_word(
     x: float,
     y: float,
-    dto_text_line: DtoTextLine,
+    dto_textline: DtoTextLine,
     word: Word,
     ) -> DtoWord:
-    dto_word = DtoWord(x, y, dto_text_line)
+    dto_word = DtoWord(x, y, dto_textline)
     dto_word.width = word._width
     dto_word.height = word._height
     dto_word.baseline = y + word._ascent
@@ -49,53 +49,53 @@ def _generate_dto_word(
             dto_word,
             fragment)
         dto_word.fragments.append(dto_fragment)
-        dto_word.text_line.fragments.append(dto_fragment)
-        dto_word.text_line.paragraph.fragments.append(dto_fragment)
-        dto_word.text_line.paragraph.text_area.fragments.append(dto_fragment)
+        dto_word.textline.fragments.append(dto_fragment)
+        dto_word.textline.paragraph.fragments.append(dto_fragment)
+        dto_word.textline.paragraph.text_area.fragments.append(dto_fragment)
         x += dto_fragment.width
     return dto_word
 
-def _generate_dto_text_line(
+def _generate_dto_textline(
     x: float,
     y: float,
     dto_paragraph: DtoParagraph,
-    text_line: TextLine,
+    textline: TextLine,
     justify_padding_after: float) -> DtoTextLine:
-    dto_text_line = DtoTextLine(
+    dto_textline = DtoTextLine(
         x,
         y,
         dto_paragraph,
         justify_padding_after
     )
-    dto_text_line.width = text_line._width
-    dto_text_line.height = text_line._height
-    dto_text_line.baseline = y + text_line._ascent
-    dto_text_line.space_after = text_line._leading
-    dto_text_line.paragraph_h_align = dto_paragraph.h_align
+    dto_textline.width = textline._width
+    dto_textline.height = textline._height
+    dto_textline.baseline = y + textline._ascent
+    dto_textline.space_after = textline._leading
+    dto_textline.paragraph_h_align = dto_paragraph.h_align
     x_offset = 0.0
     justify_space = 0.0
-    match dto_text_line.paragraph_h_align:
+    match dto_textline.paragraph_h_align:
         case "left":
             pass
         case "right":
-            x_offset = text_line._available_width
+            x_offset = textline._available_width
         case "center":
-            x_offset = (text_line._available_width) / 2
+            x_offset = (textline._available_width) / 2
         case "justify":
-            justify_space = calculate_justify_space(text_line)
+            justify_space = calculate_justify_space(textline)
     x += x_offset
-    for word in text_line._words:
+    for word in textline._words:
         dto_word = _generate_dto_word(
             x,
-            y + (text_line._ascent - word._ascent),
-            dto_text_line,
+            y + (textline._ascent - word._ascent),
+            dto_textline,
             word)
-        dto_text_line.words.append(dto_word)
+        dto_textline.words.append(dto_word)
         if word._chars == " ":
             x += dto_word.width + justify_space
         else:
             x += dto_word.width
-    return dto_text_line
+    return dto_textline
 
 def _generate_dto_paragraph(
     x: float,
@@ -140,17 +140,17 @@ def _generate_dto_paragraph(
             x_offset = (x
                         + dto_paragraph.left_indent
                         + dto_paragraph.hanging_indent)
-        dto_text_line = _generate_dto_text_line(
+        dto_textline = _generate_dto_textline(
             x_offset,
             y,
             dto_paragraph,
             line,
             line_justify_padding,
             )
-        dto_paragraph.text_lines.append(dto_text_line)
-        y += dto_text_line.height
-        y += dto_text_line.space_after
-        y += dto_text_line.justify_padding_after
+        dto_paragraph.textlines.append(dto_textline)
+        y += dto_textline.height
+        y += dto_textline.space_after
+        y += dto_textline.justify_padding_after
     y += dto_paragraph.space_after
     dto_paragraph.height += height_diff
     return dto_paragraph

@@ -62,7 +62,7 @@ def test__textline_split_word(doc_with_fonts):
 
 def test__textline_delete_textline(doc_with_fonts):
     ta = doc_with_fonts.create_textarea(0, 0, 25, 100)
-    doc_with_fonts.settings.text_line_height_ratio = 1.5
+    doc_with_fonts.settings.textline_height_ratio = 1.5
     ta.add_text("aa bb cc dd ee ")
     new_words = create_words(
         "ab",
@@ -99,7 +99,7 @@ def test__textline_delete_textline(doc_with_fonts):
 
 def test__textline_word_width_exceeds_textline_width(doc_with_fonts):
     ta = doc_with_fonts.create_textarea(0, 0, 25, 100)
-    doc_with_fonts.settings.text_line_height_ratio = 1.5
+    doc_with_fonts.settings.textline_height_ratio = 1.5
     doc_with_fonts.settings.text_split_words = False
     ta.add_text("aa bb cccccc dd ee ")
     words_buffer = ta._get_buffer()
@@ -140,7 +140,7 @@ def test__append_and_remove_words(doc_with_fonts):
     doc_with_fonts.settings.paragraph_hanging_indent = 0
     doc_with_fonts.settings.paragraph_left_indent = 0
     doc_with_fonts.settings.paragraph_right_indent = 0
-    doc_with_fonts.settings.text_line_height_ratio = 1
+    doc_with_fonts.settings.textline_height_ratio = 1
     doc_with_fonts.settings.text_split_words = False
     doc_with_fonts.settings.font_size = 10
     ta = doc_with_fonts.create_textarea(0, 0, 120, 20)

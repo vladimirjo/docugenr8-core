@@ -11,7 +11,7 @@ def test__justify_text(doc_with_fonts):
     doc_with_fonts.settings.paragraph_hanging_indent = 0
     doc_with_fonts.settings.paragraph_left_indent = 0
     doc_with_fonts.settings.paragraph_right_indent = 0
-    doc_with_fonts.settings.text_line_height_ratio = 1
+    doc_with_fonts.settings.textline_height_ratio = 1
     doc_with_fonts.settings.text_split_words = False
     doc_with_fonts.settings.font_size = 10
     doc_with_fonts.settings.text_h_align = "justify"
@@ -24,8 +24,8 @@ def test__justify_text(doc_with_fonts):
     assert ta1._paragraphs[0]._textlines[0]._available_width == 25
     dto = doc_with_fonts.build_dto()
     assert isinstance(dto.pages[0].contents[0], DtoTextArea)
-    first_line = dto.pages[0].contents[0].paragraphs[0].text_lines[0]
-    second_line = dto.pages[0].contents[0].paragraphs[0].text_lines[1]
+    first_line = dto.pages[0].contents[0].paragraphs[0].textlines[0]
+    second_line = dto.pages[0].contents[0].paragraphs[0].textlines[1]
     assert first_line.x == 0
     assert first_line.y == 0
     assert first_line.words[0].x == 0

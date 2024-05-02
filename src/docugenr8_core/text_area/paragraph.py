@@ -25,7 +25,7 @@ class Paragraph:
             textarea._document.settings.paragraph_space_after)
         self._change_height(self._space_before + self._space_after)
         self._line_height_ratio: float = (
-            textarea._document.settings.text_line_height_ratio)
+            textarea._document.settings.textline_height_ratio)
         self._tab_size: float = textarea._document.settings.text_tab_size
         self._first_line_indent: float = (
             textarea._document.settings.paragraph_first_line_indent)

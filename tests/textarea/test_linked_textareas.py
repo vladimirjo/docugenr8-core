@@ -7,7 +7,7 @@ def test__textarea_linked_textareas(doc_with_fonts):
     doc_with_fonts.settings.paragraph_hanging_indent = 0
     doc_with_fonts.settings.paragraph_left_indent = 0
     doc_with_fonts.settings.paragraph_right_indent = 0
-    doc_with_fonts.settings.text_line_height_ratio = 1
+    doc_with_fonts.settings.textline_height_ratio = 1
     doc_with_fonts.settings.text_split_words = False
     ta1 = doc_with_fonts.create_textarea(0, 0, 15, 20)
     ta1.add_text("aa bb cc dd ee ")
@@ -33,7 +33,7 @@ def test__textarea_linked_textareas_emptying(doc_with_fonts):
     doc_with_fonts.settings.paragraph_hanging_indent = 0
     doc_with_fonts.settings.paragraph_left_indent = 0
     doc_with_fonts.settings.paragraph_right_indent = 0
-    doc_with_fonts.settings.text_line_height_ratio = 1
+    doc_with_fonts.settings.textline_height_ratio = 1
     doc_with_fonts.settings.text_split_words = False
     ta1 = doc_with_fonts.create_textarea(0, 0, 15, 20)
     ta1.add_text("aa bb cc dd ee ")
@@ -69,7 +69,7 @@ def test__textarea_linked_textareas_emptying_with_paragraphs(doc_with_fonts):
     doc_with_fonts.settings.paragraph_hanging_indent = 0
     doc_with_fonts.settings.paragraph_left_indent = 0
     doc_with_fonts.settings.paragraph_right_indent = 0
-    doc_with_fonts.settings.text_line_height_ratio = 1
+    doc_with_fonts.settings.textline_height_ratio = 1
     doc_with_fonts.settings.text_split_words = False
     ta1 = doc_with_fonts.create_textarea(0, 0, 15, 20)
     ta1.add_text("aa bb cc dd \nee ff \ngg hh \nii jj ")

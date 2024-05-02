@@ -9,7 +9,7 @@ class Settings:
         self.text_tab_size = 35.4375
         self.text_h_align: str = "left"
         self.text_v_align: str = "top"
-        self.text_line_height_ratio: float = 1.2
+        self.textline_height_ratio: float = 1.2
         self.text_split_words: bool = True
         self.paragraph_first_line_indent: float = 20.0
         self.paragraph_hanging_indent: float = 0.0

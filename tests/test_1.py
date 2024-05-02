@@ -31,7 +31,7 @@ def test__check_number_of_paragraphs(doc_with_fonts):
     assert ta._paragraphs[0]._textlines[0]._get_chars() == "aaaaa\n"
     assert ta._paragraphs[1]._textlines[0]._get_chars() == "aaaaa"
 
-def test__spaces_at_the_end_of_text_line(doc_with_fonts):
+def test__spaces_at_the_end_of_textline(doc_with_fonts):
     ta = doc_with_fonts.create_textarea(0, 0, 100, 100)
     ta.add_text("    aaaa aaaa aaaa      aaaa    aaaa  aaaaaa    ")
     assert ta._paragraphs[0]._textlines[0]._available_width == 10
