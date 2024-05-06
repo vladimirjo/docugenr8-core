@@ -1,3 +1,3 @@
-# docugenr8-core Library
+# docugenr8 Library
 
-docugenr8-core is a Python library add-on for core operations.
+docugenr8 is a Python library for document creation.

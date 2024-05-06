@@ -3,15 +3,15 @@ requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "docugenr8-core"
+name = "docugenr8"
 authors = [{ name = "Vladimir Jovanovic", email = "vladimirjo@protonmail.com" }]
-description = "Docugenr8 add-on library for core operations"
+description = "Library for document creating"
 readme = "README.md"
 requires-python = ">=3.10"
 keywords = []
 license = { text = "MIT" }
 classifiers = ["Programming Language :: Python :: 3"]
-dependencies = ["fonttools", "docugenr8-shared>=0.0.0,<1.0.0"]
+dependencies = ["fonttools", "docugenr8-shared>=0.0.0,<1.0.0", "docugenr8-pdf>=0.0.0,<1.0.0"]
 dynamic = ["version"]
 
 [tool.setuptools.dynamic]
@@ -21,7 +21,7 @@ version = { file = "version.txt" }
 check = ["ruff", "mypy"]
 test = ["pytest", "pytest-cov"]
 build = ["build", "setuptools", "twine", "tox"]
-dev = ["docugenr8-core[check, test, build]"]
+dev = ["docugenr8[check, test, build]"]
 
 [tool.ruff]
 line-length = 120

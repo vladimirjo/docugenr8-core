@@ -1,4 +1,4 @@
-"""docugenr8-core module.
+"""docugenr8 module.
 
 This module provides functionality to create and manipulate documents and its objects. It includes the `Document` class,
 which represents a document and its pages. It has functions to add new pages, create and add objects to pages and pack
