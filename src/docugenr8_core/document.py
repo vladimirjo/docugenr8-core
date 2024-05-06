@@ -10,9 +10,7 @@ from .text_area import TextArea
 
 
 class Document:
-    def __init__(
-        self
-        ) -> None:
+    def __init__(self) -> None:
         self.settings = Settings()
         self.pages: list[Page] = []
         self.fonts: dict[str, Font] = {}
@@ -20,32 +18,26 @@ class Document:
     def add_page(
         self,
         width: float,
-        height: float
-        ) -> None:
+        height: float,
+    ) -> None:
         page = Page(width, height)
         self.pages.append(page)
 
     def add_font(
         self,
         font_name: str,
-        path: str
-        ) -> None:
+        path: str,
+    ) -> None:
         font = Font(font_name, path)
         self.fonts[font_name] = font
         self.settings.font_current = font_name
 
     def create_textarea(
-        self,
-        x: float,
-        y: float,
-        width: float,
-        height: float
+        self, x: float, y: float, width: float, height: float
     ) -> TextArea:
         return TextArea(x, y, width, height, self)
 
-    def build_dto(
-        self
-        ) -> Dto:
+    def build_dto(self) -> Dto:
         dto = Dto()
         for font_name, font in self.fonts.items():
             dto_font = DtoFont(font_name, font.raw_data)
@@ -58,8 +50,7 @@ class Document:
                     case TextArea():
                         content._build_current_page_fragments(page_number + 1)
                         content._build_total_pages_fragments(len(self.pages))
-                        dto_page.contents.append(
-                            _generate_dto_text_area(content))
+                        dto_page.contents.append(_generate_dto_text_area(content))
                     case _:
                         raise TypeError("Invalid content type.")
         return dto
