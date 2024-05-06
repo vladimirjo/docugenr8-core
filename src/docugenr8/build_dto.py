@@ -4,16 +4,7 @@ This module provides functionality to build Data Transfer Objects (DTOs) for
 transferring document information between modules.
 """
 
-from typing import TYPE_CHECKING
-
-
-if TYPE_CHECKING:
-    from ..docugenr8 import Document
-
-from docugenr8_shared.dto import Dto
-from docugenr8_shared.dto import DtoFont
 from docugenr8_shared.dto import DtoFragment
-from docugenr8_shared.dto import DtoPage
 from docugenr8_shared.dto import DtoParagraph
 from docugenr8_shared.dto import DtoTextArea
 from docugenr8_shared.dto import DtoTextLine
@@ -24,25 +15,6 @@ from .text_area.paragraph import Paragraph
 from .text_area.textarea import TextArea
 from .text_area.textline import TextLine
 from .text_area.word import Word
-
-
-def build_dto(doc: Document) -> Dto:
-    dto = Dto()
-    for font_name, font in doc.fonts.items():
-        dto_font = DtoFont(font_name, font.raw_data)
-        dto.fonts.append(dto_font)
-    for page_number, page in enumerate(doc.pages):
-        dto_page = DtoPage(page._width, page._height)
-        dto.pages.append(dto_page)
-        for content in page._contents:
-            match content:
-                case TextArea():
-                    content._build_current_page_fragments(page_number + 1)
-                    content._build_total_pages_fragments(len(doc.pages))
-                    dto_page.contents.append(_generate_dto_text_area(content))
-                case _:
-                    raise TypeError("Invalid content type.")
-    return dto
 
 
 def _generate_dto_fragment(
