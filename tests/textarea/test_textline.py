@@ -1,4 +1,4 @@
-from docugenr8.text_area.textarea import create_words
+from docugenr8_core.text_area.textarea import create_words
 
 def test__textline_append_word(doc_with_fonts):
     ta = doc_with_fonts.create_textarea(0, 0, 25, 100)

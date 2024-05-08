@@ -1,4 +1,4 @@
-from docugenr8.text_area.textarea import create_words
+from docugenr8_core.text_area.textarea import create_words
 
 def test__textarea_linked_textareas(doc_with_fonts):
     doc_with_fonts.settings.paragraph_space_before = 0

@@ -1,4 +1,4 @@
-from docugenr8.text_area.words_creation import create_words
+from docugenr8_core.text_area.words_creation import create_words
 
 def test__create_words(font1):
     text = "The quick brown fox jumps over the lazy dog 1234567890 !@#$%^&*()_+[]{};':\",./<>?`~-"
