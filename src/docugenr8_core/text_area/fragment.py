@@ -32,10 +32,7 @@ class Fragment:
         self._is_current_page_dummy: bool = False
         self._is_total_pages_dummy: bool = False
 
-    def _adjust_width(
-        self,
-        new_width: float
-        ) -> None:
+    def _adjust_width(self, new_width: float) -> None:
         width_diff = new_width - self._width
         self._width += width_diff
         if self._word is not None:

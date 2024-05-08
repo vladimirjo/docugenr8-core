@@ -22,7 +22,7 @@ def test__justify_text(doc_with_fonts):
     doc_with_fonts.pages[0].add_content(ta1)
     assert len(ta1._paragraphs[0]._textlines) == 2
     assert ta1._paragraphs[0]._textlines[0]._available_width == 25
-    dto = doc_with_fonts.build_dto()
+    dto = doc_with_fonts._build_dto()
     assert isinstance(dto.pages[0].contents[0], DtoTextArea)
     first_line = dto.pages[0].contents[0].paragraphs[0].textlines[0]
     second_line = dto.pages[0].contents[0].paragraphs[0].textlines[1]

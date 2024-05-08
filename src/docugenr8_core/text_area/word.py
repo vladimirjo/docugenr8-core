@@ -10,10 +10,9 @@ if TYPE_CHECKING:
     from .textline import TextLine
     from .word import Word
 
+
 class Word:
-    def __init__(
-        self
-        ) -> None:
+    def __init__(self) -> None:
         self._textline: None | TextLine = None
         self._fragments: deque[Fragment] = deque()
         self._chars = ""
@@ -28,114 +27,70 @@ class Word:
         self._current_page_fragments: list[Fragment] = []
         self._total_pages_fragments: list[Fragment] = []
 
-
-
-    def _has_current_page_fragments(
-        self
-        ) -> bool:
+    def _has_current_page_fragments(self) -> bool:
         if len(self._current_page_fragments) > 0:
             return True
         return False
 
-    def _has_total_pages_fragments(
-        self
-        ) -> bool:
+    def _has_total_pages_fragments(self) -> bool:
         if len(self._total_pages_fragments) > 0:
             return True
         return False
 
-    def _is_first_word_in_paragraph(
-        self
-        ) -> bool:
+    def _is_first_word_in_paragraph(self) -> bool:
         if self._textline is None:
             return False
         if self._textline._paragraph is None:
             return False
-        first_linked_paragraph = (
-            self._textline._paragraph._get_first_linked_paragraph()
-        )
+        first_linked_paragraph = self._textline._paragraph._get_first_linked_paragraph()
         return self == first_linked_paragraph._textlines[0]._words[0]
 
-    def _is_last_word_in_paragraph(
-        self
-        ) -> bool:
+    def _is_last_word_in_paragraph(self) -> bool:
         if self._textline is None:
             return False
         if self._textline._paragraph is None:
             return False
-        last_linked_paragraph = (
-            self._textline._paragraph._get_last_linked_paragraph())
+        last_linked_paragraph = self._textline._paragraph._get_last_linked_paragraph()
         return self == last_linked_paragraph._textlines[-1]._words[-1]
 
-    def _get_paragraph(
-        self
-        ) -> Paragraph | None:
+    def _get_paragraph(self) -> Paragraph | None:
         if self._textline is None:
             return None
         return self._textline._paragraph
 
-    def _remove_from_line(
-        self
-        ) -> None:
+    def _remove_from_line(self) -> None:
         if self._textline is None:
             raise ValueError("Missing textline.")
         word_index = self._textline._words.index(self)
         self._textline._pop_word(word_index)
 
-    def _add_page_number_to_textarea(
-        self
-    ) -> None:
+    def _add_page_number_to_textarea(self) -> None:
         if self._textline is None:
             return
-        words_with_current_page_fragments = (
-            self
-                ._textline
-                ._paragraph._textarea
-                ._words_with_current_page_fragments)
-        words_with_total_pages_fragments = (
-            self
-                ._textline
-                ._paragraph
-                ._textarea
-                ._words_with_total_pages_fragments)
+        words_with_current_page_fragments = self._textline._paragraph._textarea._words_with_current_page_fragments
+        words_with_total_pages_fragments = self._textline._paragraph._textarea._words_with_total_pages_fragments
         if self._has_current_page_fragments():
             words_with_current_page_fragments.append(self)
         if self._has_total_pages_fragments():
             words_with_total_pages_fragments.append(self)
 
-    def _remove_page_number_from_textarea(
-        self
-    ) -> None:
+    def _remove_page_number_from_textarea(self) -> None:
         if self._textline is None:
             return
-        words_with_current_page_fragments = (
-            self
-                ._textline
-                ._paragraph._textarea
-                ._words_with_current_page_fragments)
-        words_with_total_pages_fragments = (
-            self
-                ._textline
-                ._paragraph
-                ._textarea
-                ._words_with_total_pages_fragments)
+        words_with_current_page_fragments = self._textline._paragraph._textarea._words_with_current_page_fragments
+        words_with_total_pages_fragments = self._textline._paragraph._textarea._words_with_total_pages_fragments
         if self in words_with_current_page_fragments:
             words_with_current_page_fragments.remove(self)
         if self in words_with_total_pages_fragments:
             words_with_total_pages_fragments.remove(self)
 
-    def _get_origin_width(
-        self
-        ) -> float:
+    def _get_origin_width(self) -> float:
         width = 0.0
         for fragment in self._fragments:
             width += fragment._width
         return width
 
-    def _append_height(
-        self,
-        height: float
-        ) -> None:
+    def _append_height(self, height: float) -> None:
         if height not in self._height_dict:
             self._height_dict[height] = 1
         else:
@@ -146,10 +101,7 @@ class Word:
             if self._textline is not None:
                 self._textline._append_height(self._height)
 
-    def _append_ascent(
-        self,
-        ascent: float
-        ) -> None:
+    def _append_ascent(self, ascent: float) -> None:
         if ascent not in self._ascent_dict:
             self._ascent_dict[ascent] = 1
         else:
@@ -160,10 +112,7 @@ class Word:
             if self._textline is not None:
                 self._textline._append_ascent(self._ascent)
 
-    def _remove_height(
-        self,
-        height: float
-        ) -> None:
+    def _remove_height(self, height: float) -> None:
         self._height_dict[height] -= 1
         if self._height_dict[height] > 0:
             return
@@ -174,15 +123,10 @@ class Word:
         if self._height == height:
             self._height = max(self._height_dict)
             if self._textline is not None:
-                raise NotImplementedError("Needs implementation "
-                                          "for removing height from "
-                                          "a textline.")
+                raise NotImplementedError("Needs implementation " "for removing height from " "a textline.")
             # height_diff = self.height - removed_height
 
-    def _remove_ascent(
-        self,
-        ascent: float
-        ) -> None:
+    def _remove_ascent(self, ascent: float) -> None:
         self._ascent_dict[ascent] -= 1
         if self._ascent_dict[ascent] > 0:
             return
@@ -193,15 +137,10 @@ class Word:
         if self._ascent == removed_ascent:
             self._ascent = max(self._ascent_dict)
             if self._textline is not None:
-                raise NotImplementedError("Needs implementation "
-                                          "for removing ascent from "
-                                          "a textline.")
+                raise NotImplementedError("Needs implementation " "for removing ascent from " "a textline.")
             # ascent_diff = self.ascent - removed_ascent
 
-    def _add_fragment(
-        self,
-        fragment: Fragment
-        ) -> Word:
+    def _add_fragment(self, fragment: Fragment) -> Word:
         fragment._word = self
         if fragment._chars in {" ", "\t", "\n"}:
             self._is_extendable = False
@@ -218,9 +157,7 @@ class Word:
             self._total_pages_fragments.append(fragment)
         return self
 
-    def _pop_fragment_left(
-        self
-        ) -> Fragment:
+    def _pop_fragment_left(self) -> Fragment:
         first_fragment = self._fragments.popleft()
         first_fragment._word = None
         self._chars = self._chars[len(first_fragment._chars) :]
@@ -229,16 +166,13 @@ class Word:
         self._remove_ascent(first_fragment._ascent)
         return first_fragment
 
-    def _pop_fragment(
-        self,
-        index: int
-        ) -> Fragment:
+    def _pop_fragment(self, index: int) -> Fragment:
         if index < 0 or index > len(self._fragments):
             raise IndexError(f"Fragment index {index} is out of range in word.")
         fragment_to_remove = self._fragments[index]
         fragment_to_remove._word = None
         chars_left = self._chars[:index]
-        chars_right = self._chars[index + 1:]
+        chars_right = self._chars[index + 1 :]
         self._chars = chars_left + chars_right
         self._fragments.remove(fragment_to_remove)
         self._width -= fragment_to_remove._width
@@ -250,15 +184,10 @@ class Word:
             self._total_pages_fragments.remove(fragment_to_remove)
         return fragment_to_remove
 
-    def _adjust_width_by_difference(
-        self,
-        width_diff: float
-        ) -> None:
+    def _adjust_width_by_difference(self, width_diff: float) -> None:
         self._width += width_diff
 
-    def _calc_width_with_justify(
-        self
-        ) -> float:
+    def _calc_width_with_justify(self) -> float:
         return self._width + self._justify_space
 
     def _is_from_textarea(
@@ -268,9 +197,7 @@ class Word:
             return True
         return False
 
-    def _is_from_buffer(
-        self
-    ) -> bool:
+    def _is_from_buffer(self) -> bool:
         if self._get_paragraph() is None:
             return True
         return False

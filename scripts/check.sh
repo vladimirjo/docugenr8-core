@@ -3,4 +3,4 @@
 ruff check
 ruff format
 mypy src/
-pytest --cov=docugenr8-core tests/
+pytest --cov=docugenr8_core tests/
