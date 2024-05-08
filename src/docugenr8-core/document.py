@@ -1,4 +1,3 @@
-from docugenr8_pdf.pdf import Pdf
 from docugenr8_shared.dto import Dto
 from docugenr8_shared.dto import DtoFont
 from docugenr8_shared.dto import DtoPage
@@ -53,12 +52,3 @@ class Document:
                     case _:
                         raise TypeError("Invalid content type.")
         return dto
-
-    def output_to_bytes(self) -> bytes:
-        pdf = Pdf(self._build_dto())
-        return pdf.output_to_bytes()
-
-    def output_to_file(self, file: str) -> None:
-        b = self.output_to_bytes()
-        with open(file, "wb") as f:
-            f.write(b)
