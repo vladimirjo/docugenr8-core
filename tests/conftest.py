@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock
 
-from docugenr8 import Document
-from docugenr8.font import Font
+from docugenr8_core import Document
+from docugenr8_core.font import Font
 
 @pytest.fixture
 def font1() -> Font:

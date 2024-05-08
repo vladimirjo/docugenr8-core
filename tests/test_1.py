@@ -1,4 +1,4 @@
-from docugenr8.text_area.textarea import create_words
+from docugenr8_core.text_area.textarea import create_words
 
 def test__check_parameters_of_one_line_text(doc_with_fonts):
     ta = doc_with_fonts.create_textarea(0, 0, 100, 100)
