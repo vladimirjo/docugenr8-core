@@ -247,8 +247,10 @@ class TextArea:
         self._paragraphs[0]._adjust_words_between_textlines()
 
     def _get_next_word(self) -> Word | None:
-        """gets the next word from either next paragraph if there is one,
-        or from the words buffer
+        """Get next word.
+
+        Gets the next word from either next paragraph if there is one,
+        or from the words buffer.
         """
         textarea = self._get_next_textarea_with_words()
         if textarea is not None:

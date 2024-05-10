@@ -19,9 +19,10 @@ class Document:
         self,
         width: float,
         height: float,
-    ) -> None:
+    ) -> Page:
         page = Page(width, height)
         self.pages.append(page)
+        return page
 
     def add_font(
         self,

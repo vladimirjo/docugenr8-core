@@ -11,7 +11,11 @@ SPACE = 32
 
 
 class Font:
-    def __init__(self, font_name: str, path: str) -> None:
+    def __init__(
+        self,
+        font_name: str,
+        path: str,
+    ) -> None:
         self.name = font_name
         self.raw_data = pathlib.Path(_resolve_file_path(path)).read_bytes()
         self.ttfont = ttLib.TTFont(BytesIO(self.raw_data), recalcTimestamp=False)
