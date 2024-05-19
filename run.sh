@@ -11,7 +11,8 @@
 #
 
 FILE_VERSION=$(sed 's/[^0-9.]//g' "./version.txt")
-PACKAGE_NAME="docugenr8-core"
+PATH_TO_SRC="./src"
+PACKAGE_NAME=$(ls "$PATH_TO_SRC" | head -n 1)
 PYPI_FILE=".pypi"
 
 # Standard success message
