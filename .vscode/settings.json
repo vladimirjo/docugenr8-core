@@ -46,7 +46,7 @@
         "*.md": "vscode.markdown.preview.editor",
         "*.svg": "svgPreviewer.customEditor"
     },
-    "workbench.colorTheme": "Default Dark+",
+    "workbench.colorTheme": "GitHub Dark",
     "git.enableSmartCommit": true,
     "git.autofetch": true,
     "git.confirmSync": false,
@@ -111,7 +111,7 @@
     "autoDocstring.generateDocstringOnEnter": true,
     "autoDocstring.quoteStyle": "'''",
     "autoDocstring.docstringFormat": "google",
-    "workbench.colorCustomizations": {
+    "workbench.colorCustomizations": """@@{JSON}@@{
         "activityBar.activeBackground": "#2f7c47",
         "activityBar.background": "#2f7c47",
         "activityBar.foreground": "#e7e7e7",
@@ -129,6 +129,6 @@
         "titleBar.activeForeground": "#e7e7e7",
         "titleBar.inactiveBackground": "#21573299",
         "titleBar.inactiveForeground": "#e7e7e799"
-    },
+    }""",
     "peacock.remoteColor": "#215732"
 }
