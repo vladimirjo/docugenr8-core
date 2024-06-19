@@ -7,14 +7,26 @@ transferring document information between modules.
 from docugenr8_shared.dto import DtoFragment
 from docugenr8_shared.dto import DtoParagraph
 from docugenr8_shared.dto import DtoTextArea
+from docugenr8_shared.dto import DtoTextBox
 from docugenr8_shared.dto import DtoTextLine
 from docugenr8_shared.dto import DtoWord
 
-from .text_area.fragment import Fragment
-from .text_area.paragraph import Paragraph
-from .text_area.textarea import TextArea
-from .text_area.textline import TextLine
-from .text_area.word import Word
+from docugenr8_core.text_area.fragment import Fragment
+from docugenr8_core.text_area.paragraph import Paragraph
+from docugenr8_core.text_area.textarea import TextArea
+from docugenr8_core.text_area.textline import TextLine
+from docugenr8_core.text_area.word import Word
+from docugenr8_core.text_box import TextBox
+
+
+def generate_dto_textbox(textbox: TextBox) -> DtoTextBox:
+    dto_textbox = DtoTextBox(textbox._x, textbox._y, textbox._width, textbox._height)
+    dto_textbox._fill_color = textbox._fill_color
+    dto_textbox._line_color = textbox._line_color
+    dto_textbox._line_width = textbox._line_width
+    dto_textbox._line_pattern = textbox._line_pattern
+    dto_textbox._text_area = _generate_dto_text_area(textbox._text_area)
+    return dto_textbox
 
 
 def _generate_dto_fragment(

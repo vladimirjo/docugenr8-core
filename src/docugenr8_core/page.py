@@ -1,3 +1,5 @@
+from docugenr8_core.text_box import TextBox
+
 from .text_area import TextArea
 
 
@@ -10,6 +12,8 @@ class Page:
     def add_content(self, content: object) -> None:
         match content:
             case TextArea():
+                self._contents.append(content)
+            case TextBox():
                 self._contents.append(content)
             case _:
                 raise TypeError("Content type not defined.")

@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:
-    from docugenr8.document import Document
-    from docugenr8.font import Font
+    from docugenr8_core.document import Document
+    from docugenr8_core.font import Font
 
     from .textline import TextLine
     from .word import Word

@@ -2,7 +2,10 @@ from docugenr8_shared.dto import Dto
 from docugenr8_shared.dto import DtoFont
 from docugenr8_shared.dto import DtoPage
 
+from docugenr8_core.text_box import TextBox
+
 from .build_dto import _generate_dto_text_area
+from .build_dto import generate_dto_textbox
 from .font import Font
 from .page import Page
 from .settings import Settings
@@ -36,6 +39,9 @@ class Document:
     def create_textarea(self, x: float, y: float, width: float, height: float) -> TextArea:
         return TextArea(x, y, width, height, self)
 
+    def create_textbox(self, x: float, y: float, width: float, height: float) -> TextBox:
+        return TextBox(x, y, width, height, self)
+
     def _build_dto(self) -> Dto:
         dto = Dto()
         for font_name, font in self.fonts.items():
@@ -50,6 +56,10 @@ class Document:
                         content._build_current_page_fragments(page_number + 1)
                         content._build_total_pages_fragments(len(self.pages))
                         dto_page.contents.append(_generate_dto_text_area(content))
+                    case TextBox():
+                        content._text_area._build_current_page_fragments(page_number + 1)
+                        content._text_area._build_total_pages_fragments(len(self.pages))
+                        dto_page.contents.append(generate_dto_textbox(content))
                     case _:
                         raise TypeError("Invalid content type.")
         return dto
