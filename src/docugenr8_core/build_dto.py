@@ -25,7 +25,7 @@ def generate_dto_textbox(textbox: TextBox) -> DtoTextBox:
     dto_textbox._line_color = textbox._line_color
     dto_textbox._line_width = textbox._line_width
     dto_textbox._line_pattern = textbox._line_pattern
-    dto_textbox._text_area = _generate_dto_text_area(textbox._text_area)
+    dto_textbox._text_area = generate_dto_text_area(textbox._text_area)
     return dto_textbox
 
 
@@ -171,7 +171,7 @@ def _generate_dto_paragraph(
     return dto_paragraph
 
 
-def _generate_dto_text_area(text_area: TextArea) -> DtoTextArea:
+def generate_dto_text_area(text_area: TextArea) -> DtoTextArea:
     y_offset: float = 0.0
     between_paragraphs_padding: float = 0.0
     should_distrubute_space_in_lines: bool = False

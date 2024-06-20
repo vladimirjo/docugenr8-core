@@ -25,6 +25,7 @@ class Settings:
         self.line_color: tuple[int, int, int] = (0, 0, 0)  # black color 0, 0, 0
         self.line_width: float = 1.0
         self.line_pattern: tuple[int, int, int, int, int] = (0, 0, 0, 0, 0)
+        self.line_closed: bool = False
         self.textbox_padding_left: float = 0.0
         self.textbox_padding_right: float = 0.0
         self.textbox_padding_top: float = 0.0

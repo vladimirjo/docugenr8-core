@@ -1,6 +1,6 @@
+from docugenr8_core.shapes import Curve
+from docugenr8_core.text_area import TextArea
 from docugenr8_core.text_box import TextBox
-
-from .text_area import TextArea
 
 
 class Page:
@@ -15,5 +15,7 @@ class Page:
                 self._contents.append(content)
             case TextBox():
                 self._contents.append(content)
+            case Curve():
+                self._contents.append(content)
             case _:
-                raise TypeError("Content type not defined.")
+                raise TypeError("Content type not defined in Core module.")

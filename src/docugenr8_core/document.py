@@ -2,9 +2,10 @@ from docugenr8_shared.dto import Dto
 from docugenr8_shared.dto import DtoFont
 from docugenr8_shared.dto import DtoPage
 
+from docugenr8_core.shapes import Curve
 from docugenr8_core.text_box import TextBox
 
-from .build_dto import _generate_dto_text_area
+from .build_dto import generate_dto_text_area
 from .build_dto import generate_dto_textbox
 from .font import Font
 from .page import Page
@@ -42,7 +43,10 @@ class Document:
     def create_textbox(self, x: float, y: float, width: float, height: float) -> TextBox:
         return TextBox(x, y, width, height, self)
 
-    def _build_dto(self) -> Dto:
+    def create_curve(self, x: float, y: float):
+        return Curve(x, y, self)
+
+    def build_dto(self) -> Dto:
         dto = Dto()
         for font_name, font in self.fonts.items():
             dto_font = DtoFont(font_name, font.raw_data)
@@ -55,11 +59,13 @@ class Document:
                     case TextArea():
                         content._build_current_page_fragments(page_number + 1)
                         content._build_total_pages_fragments(len(self.pages))
-                        dto_page.contents.append(_generate_dto_text_area(content))
+                        dto_page.contents.append(generate_dto_text_area(content))
                     case TextBox():
                         content._text_area._build_current_page_fragments(page_number + 1)
                         content._text_area._build_total_pages_fragments(len(self.pages))
                         dto_page.contents.append(generate_dto_textbox(content))
+                    case Curve():
+                        dto_page.contents.append(content._dto_curve)
                     case _:
-                        raise TypeError("Invalid content type.")
+                        raise TypeError("Invalid content type to generate Dto in Core module.")
         return dto
