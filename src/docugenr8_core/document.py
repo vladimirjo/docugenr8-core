@@ -1,19 +1,15 @@
 from docugenr8_shared.dto import Dto
-from docugenr8_shared.dto import DtoFont
-from docugenr8_shared.dto import DtoPage
 
-from docugenr8_core.shapes import Curve
-from docugenr8_core.shapes import Rectangle
+from docugenr8_core.dto import dto_build
+from docugenr8_core.font import Font
+from docugenr8_core.page import Page
+from docugenr8_core.settings import Settings
 from docugenr8_core.shapes import Arc
+from docugenr8_core.shapes import Curve
 from docugenr8_core.shapes import Ellipse
+from docugenr8_core.shapes import Rectangle
+from docugenr8_core.text_area import TextArea
 from docugenr8_core.text_box import TextBox
-
-from .build_dto import generate_dto_text_area
-from .build_dto import generate_dto_textbox
-from .font import Font
-from .page import Page
-from .settings import Settings
-from .text_area import TextArea
 
 
 class Document:
@@ -76,9 +72,19 @@ class Document:
             self,
         )
 
-    def create_elipse():
-        # x, y, height, width, rotate, shear
-        pass
+    def create_elipse(
+        self,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        rotate: float = 0,
+        skew: float = 0,
+    ) -> Ellipse:
+        return Ellipse(x, y, width, height, rotate, skew, self)
+
+    def create_arc(self, x1: float, y1: float, x2: float, y2: float) -> Arc:
+        return Arc(x1, y1, x2, y2, self)
 
     def create_triangle():
         # x, y, height, width,rotate, shear
@@ -114,32 +120,9 @@ class Document:
         # number of rows
         pass
 
-    def build_dto(self) -> Dto:
-        dto = Dto()
-        for font_name, font in self.fonts.items():
-            dto_font = DtoFont(font_name, font.raw_data)
-            dto.fonts.append(dto_font)
-        for page_number, page in enumerate(self.pages):
-            dto_page = DtoPage(page._width, page._height)
-            dto.pages.append(dto_page)
-            for content in page._contents:
-                match content:
-                    case TextArea():
-                        content._build_current_page_fragments(page_number + 1)
-                        content._build_total_pages_fragments(len(self.pages))
-                        dto_page.contents.append(generate_dto_text_area(content))
-                    case TextBox():
-                        content._text_area._build_current_page_fragments(page_number + 1)
-                        content._text_area._build_total_pages_fragments(len(self.pages))
-                        dto_page.contents.append(generate_dto_textbox(content))
-                    case Curve():
-                        dto_page.contents.append(content._dto_curve)
-                    case Rectangle():
-                        dto_page.contents.append(content._dto_rectangle)
-                    case Arc():
-                        dto_page.contents.append(content._dto_arc)
-                    case Ellipse():
-                        dto_page.contents.append(content._dto_ellipse)
-                    case _:
-                        raise TypeError("Invalid content type to generate Dto in Core module.")
-        return dto
+    def export(self, data_type: str = "dto") -> Dto:
+        match data_type:
+            case "dto":
+                return dto_build(self)
+            case _:
+                raise NotImplementedError("Not implemented data type.")

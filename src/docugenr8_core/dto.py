@@ -4,19 +4,155 @@ This module provides functionality to build Data Transfer Objects (DTOs) for
 transferring document information between modules.
 """
 
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from docugenr8_core.document import Document
+
+from docugenr8_shared.dto import Dto
+from docugenr8_shared.dto import DtoArc
+from docugenr8_shared.dto import DtoBezier
+from docugenr8_shared.dto import DtoCurve
+from docugenr8_shared.dto import DtoEllipse
+from docugenr8_shared.dto import DtoFont
 from docugenr8_shared.dto import DtoFragment
+from docugenr8_shared.dto import DtoPage
 from docugenr8_shared.dto import DtoParagraph
+from docugenr8_shared.dto import DtoPoint
+from docugenr8_shared.dto import DtoRectangle
 from docugenr8_shared.dto import DtoTextArea
 from docugenr8_shared.dto import DtoTextBox
 from docugenr8_shared.dto import DtoTextLine
 from docugenr8_shared.dto import DtoWord
 
+from docugenr8_core.shapes import Arc
+from docugenr8_core.shapes import Bezier
+from docugenr8_core.shapes import Curve
+from docugenr8_core.shapes import Ellipse
+from docugenr8_core.shapes import Point
+from docugenr8_core.shapes import Rectangle
 from docugenr8_core.text_area.fragment import Fragment
 from docugenr8_core.text_area.paragraph import Paragraph
 from docugenr8_core.text_area.textarea import TextArea
 from docugenr8_core.text_area.textline import TextLine
 from docugenr8_core.text_area.word import Word
 from docugenr8_core.text_box import TextBox
+
+
+def dto_build(doc: Document) -> Dto:
+    dto = Dto()
+    for font_name, font in doc.fonts.items():
+        dto_font = DtoFont(font_name, font.raw_data)
+        dto.fonts.append(dto_font)
+    for page_number, page in enumerate(doc.pages):
+        dto_page = DtoPage(page._width, page._height)
+        dto.pages.append(dto_page)
+        for content in page._contents:
+            match content:
+                case TextArea():
+                    content._build_current_page_fragments(page_number + 1)
+                    content._build_total_pages_fragments(len(doc.pages))
+                    dto_page.contents.append(generate_dto_text_area(content))
+                case TextBox():
+                    content._text_area._build_current_page_fragments(page_number + 1)
+                    content._text_area._build_total_pages_fragments(len(doc.pages))
+                    dto_page.contents.append(generate_dto_textbox(content))
+                case Curve():
+                    dto_page.contents.append(generate_dto_curve(content))
+                case Rectangle():
+                    dto_page.contents.append(generate_dto_rectangle(content))
+                case Arc():
+                    dto_page.contents.append(generate_dto_arc(content))
+                case Ellipse():
+                    dto_page.contents.append(generate_dto_ellipse(content))
+                case _:
+                    raise TypeError("Invalid content type to generate Dto in Core module.")
+    return dto
+
+
+def generate_dto_ellipse(content: Ellipse) -> DtoEllipse:
+    dto_ellipse = DtoEllipse(
+        content.x,
+        content.y,
+        content.width,
+        content.height,
+        content.rotate,
+        content.skew,
+        content.fill_color,
+        content.line_color,
+        content.line_width,
+        content.line_pattern,
+    )
+    return dto_ellipse
+
+
+def generate_dto_arc(content: Arc) -> DtoArc:
+    dto_arc = DtoArc(
+        content.x1,
+        content.y1,
+        content.x2,
+        content.y2,
+        content.line_color,
+        content.line_width,
+        content.line_pattern,
+    )
+    return dto_arc
+
+
+def generate_dto_rectangle(content: Rectangle) -> DtoRectangle:
+    dto_rectangle = DtoRectangle(
+        content.x,
+        content.y,
+        content.width,
+        content.height,
+        content.rotate,
+        content.skew,
+        content.rounded_corner_top_left,
+        content.rounded_corner_top_right,
+        content.rounded_corner_bottom_left,
+        content.rounded_corner_bottom_right,
+        content.fill_color,
+        content.line_color,
+        content.line_width,
+        content.line_pattern,
+    )
+    return dto_rectangle
+
+
+def generate_dto_curve(curve: Curve) -> DtoCurve:
+    if not isinstance(curve.path[0], Point):
+        raise TypeError("First point in the path must have only x and y coordinates.")
+    dto_curve = DtoCurve(
+        curve.path[0].x,
+        curve.path[0].y,
+        curve.fill_color,
+        curve.line_color,
+        curve.line_width,
+        curve.line_pattern,
+        curve.line_closed,
+    )
+    for index, point in enumerate(curve.path):
+        if index == 0:
+            continue
+        if isinstance(point, Point):
+            dto_curve.path.append(DtoPoint(point.x, point.y))
+        elif isinstance(point, Bezier):
+            dto_curve.path.append(
+                DtoBezier(
+                    point.cp1_x,
+                    point.cp1_y,
+                    point.cp2_x,
+                    point.cp2_y,
+                    point.endp_x,
+                    point.endp_y,
+                )
+            )
+        else:
+            raise TypeError("The point in the path is not a valid object.")
+    return dto_curve
 
 
 def generate_dto_textbox(textbox: TextBox) -> DtoTextBox:
