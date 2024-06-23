@@ -30,4 +30,6 @@ Example:
     dto = doc.build_dto()
 """
 
-from .document import Document as Document
+from docugenr8_core.document import Document as Document
+from docugenr8_core.page import Page as Page
+from docugenr8_core.settings import Settings as Settings

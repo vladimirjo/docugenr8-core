@@ -23,6 +23,8 @@ from docugenr8_shared.dto import DtoPage
 from docugenr8_shared.dto import DtoParagraph
 from docugenr8_shared.dto import DtoPoint
 from docugenr8_shared.dto import DtoRectangle
+from docugenr8_shared.dto import DtoRotation
+from docugenr8_shared.dto import DtoSkew
 from docugenr8_shared.dto import DtoTextArea
 from docugenr8_shared.dto import DtoTextBox
 from docugenr8_shared.dto import DtoTextLine
@@ -34,6 +36,8 @@ from docugenr8_core.shapes import Curve
 from docugenr8_core.shapes import Ellipse
 from docugenr8_core.shapes import Point
 from docugenr8_core.shapes import Rectangle
+from docugenr8_core.shapes import Rotation
+from docugenr8_core.shapes import Skew
 from docugenr8_core.text_area.fragment import Fragment
 from docugenr8_core.text_area.paragraph import Paragraph
 from docugenr8_core.text_area.textarea import TextArea
@@ -79,13 +83,32 @@ def generate_dto_ellipse(content: Ellipse) -> DtoEllipse:
         content.y,
         content.width,
         content.height,
-        content.rotate,
-        content.skew,
         content.fill_color,
         content.line_color,
         content.line_width,
         content.line_pattern,
     )
+    for transformation in content.transformations:
+        if isinstance(transformation, Rotation):
+            dto_ellipse.transformations.append(
+                DtoRotation(
+                    transformation.x_origin,
+                    transformation.y_origin,
+                    transformation.degrees,
+                )
+            )
+        elif isinstance(transformation, Skew):
+            dto_ellipse.transformations.append(
+                DtoSkew(
+                    transformation.x_origin,
+                    transformation.y_origin,
+                    transformation.vertical_degrees,
+                    transformation.horizontal_degrees,
+                )
+            )
+        else:
+            raise TypeError("The transformation is not a valid object.")
+
     return dto_ellipse
 
 
@@ -99,6 +122,26 @@ def generate_dto_arc(content: Arc) -> DtoArc:
         content.line_width,
         content.line_pattern,
     )
+    for transformation in content.transformations:
+        if isinstance(transformation, Rotation):
+            dto_arc.transformations.append(
+                DtoRotation(
+                    transformation.x_origin,
+                    transformation.y_origin,
+                    transformation.degrees,
+                )
+            )
+        elif isinstance(transformation, Skew):
+            dto_arc.transformations.append(
+                DtoSkew(
+                    transformation.x_origin,
+                    transformation.y_origin,
+                    transformation.vertical_degrees,
+                    transformation.horizontal_degrees,
+                )
+            )
+        else:
+            raise TypeError("The transformation is not a valid object.")
     return dto_arc
 
 
@@ -108,8 +151,6 @@ def generate_dto_rectangle(content: Rectangle) -> DtoRectangle:
         content.y,
         content.width,
         content.height,
-        content.rotate,
-        content.skew,
         content.rounded_corner_top_left,
         content.rounded_corner_top_right,
         content.rounded_corner_bottom_left,
@@ -119,22 +160,42 @@ def generate_dto_rectangle(content: Rectangle) -> DtoRectangle:
         content.line_width,
         content.line_pattern,
     )
+    for transformation in content.transformations:
+        if isinstance(transformation, Rotation):
+            dto_rectangle.transformations.append(
+                DtoRotation(
+                    transformation.x_origin,
+                    transformation.y_origin,
+                    transformation.degrees,
+                )
+            )
+        elif isinstance(transformation, Skew):
+            dto_rectangle.transformations.append(
+                DtoSkew(
+                    transformation.x_origin,
+                    transformation.y_origin,
+                    transformation.vertical_degrees,
+                    transformation.horizontal_degrees,
+                )
+            )
+        else:
+            raise TypeError("The transformation is not a valid object.")
     return dto_rectangle
 
 
-def generate_dto_curve(curve: Curve) -> DtoCurve:
-    if not isinstance(curve.path[0], Point):
+def generate_dto_curve(content: Curve) -> DtoCurve:
+    if not isinstance(content.path[0], Point):
         raise TypeError("First point in the path must have only x and y coordinates.")
     dto_curve = DtoCurve(
-        curve.path[0].x,
-        curve.path[0].y,
-        curve.fill_color,
-        curve.line_color,
-        curve.line_width,
-        curve.line_pattern,
-        curve.line_closed,
+        content.path[0].x,
+        content.path[0].y,
+        content.fill_color,
+        content.line_color,
+        content.line_width,
+        content.line_pattern,
+        content.line_closed,
     )
-    for index, point in enumerate(curve.path):
+    for index, point in enumerate(content.path):
         if index == 0:
             continue
         if isinstance(point, Point):
@@ -152,6 +213,26 @@ def generate_dto_curve(curve: Curve) -> DtoCurve:
             )
         else:
             raise TypeError("The point in the path is not a valid object.")
+    for transformation in content.transformations:
+        if isinstance(transformation, Rotation):
+            dto_curve.transformations.append(
+                DtoRotation(
+                    transformation.x_origin,
+                    transformation.y_origin,
+                    transformation.degrees,
+                )
+            )
+        elif isinstance(transformation, Skew):
+            dto_curve.transformations.append(
+                DtoSkew(
+                    transformation.x_origin,
+                    transformation.y_origin,
+                    transformation.vertical_degrees,
+                    transformation.horizontal_degrees,
+                )
+            )
+        else:
+            raise TypeError("The transformation is not a valid object.")
     return dto_curve
 
 
