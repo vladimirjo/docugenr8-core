@@ -157,35 +157,35 @@ class Document:
             line_pattern,
         )
 
-    def create_triangle():
+    def create_triangle(self):
         # x, y, height, width,rotate, shear
         # top_point procent from 0 - 100%
         pass
 
-    def create_diamond():
+    def create_diamond(self):
         # x, y, height, width, rotate, shear
         # mid_point procent from 0 -100%
         pass
 
-    def create_trapezoid():
+    def create_trapezoid(self):
         # x, y, height, width, rotate, shear
         # left point 0 - 100%
         # right point 0 - 100%
         pass
 
-    def create_poligon():
+    def create_poligon(self):
         # x, y, height, width, rotate, shear
         # number of sides
         # curve from -100% to 100%
         pass
 
-    def create_star():
+    def create_star(self):
         # x, y, height, width, rotate, shear
         # number of points
         # inner radius from 0 - 100%
         pass
 
-    def create_table():
+    def create_table(self):
         # x, y, height, width
         # number of columns
         # number of rows
