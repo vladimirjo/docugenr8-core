@@ -38,6 +38,7 @@ from docugenr8_core.shapes import Point
 from docugenr8_core.shapes import Rectangle
 from docugenr8_core.shapes import Rotation
 from docugenr8_core.shapes import Skew
+from docugenr8_core.svg import Svg
 from docugenr8_core.text_area.fragment import Fragment
 from docugenr8_core.text_area.paragraph import Paragraph
 from docugenr8_core.text_area.textarea import TextArea
@@ -72,6 +73,8 @@ def dto_build(doc: Document) -> Dto:
                     dto_page.contents.append(generate_dto_arc(content))
                 case Ellipse():
                     dto_page.contents.append(generate_dto_ellipse(content))
+                case Svg():
+                    dto_page.contents.extend(content.build_elements())
                 case _:
                     raise TypeError("Invalid content type to generate Dto in Core module.")
     return dto
@@ -193,7 +196,7 @@ def generate_dto_curve(content: Curve) -> DtoCurve:
         content.line_color,
         content.line_width,
         content.line_pattern,
-        content.line_closed,
+        content.closed,
     )
     for index, point in enumerate(content.path):
         if index == 0:

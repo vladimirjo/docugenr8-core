@@ -8,6 +8,7 @@ from docugenr8_core.shapes import Arc
 from docugenr8_core.shapes import Curve
 from docugenr8_core.shapes import Ellipse
 from docugenr8_core.shapes import Rectangle
+from docugenr8_core.svg import Svg
 from docugenr8_core.text_area import TextArea
 from docugenr8_core.text_box import TextBox
 
@@ -42,8 +43,33 @@ class Document:
     def create_textbox(self, x: float, y: float, width: float, height: float) -> TextBox:
         return TextBox(x, y, width, height, self)
 
-    def create_curve(self, x: float, y: float):
-        return Curve(x, y, self)
+    def create_curve(
+        self,
+        x: float,
+        y: float,
+        closed: bool = False,
+        fill_color: tuple[int, int, int] | None | bool = False,
+        line_color: tuple[int, int, int] | None | bool = False,
+        line_width: float | None = None,
+        line_pattern: tuple[int, int, int, int, int] | None = None,
+    ):
+        if isinstance(fill_color, bool):
+            fill_color = self.settings.fill_color
+        if isinstance(line_color, bool):
+            line_color = self.settings.fill_color
+        if line_width is None:
+            line_width = self.settings.line_width
+        if line_pattern is None:
+            line_pattern = self.settings.line_pattern
+        return Curve(
+            x,
+            y,
+            closed,
+            fill_color,
+            line_color,
+            line_width,
+            line_pattern,
+        )
 
     def create_rectangle(
         self,
@@ -51,25 +77,28 @@ class Document:
         y: float,
         width: float,
         height: float,
-        rotate: float,
-        skew: float,
-        rounded_corner_top_left: float,
-        rounded_corner_top_right: float,
-        rounded_corner_bottom_left: float,
-        rounded_corner_bottom_right: float,
+        fill_color: tuple[int, int, int] | None | bool = False,
+        line_color: tuple[int, int, int] | None | bool = False,
+        line_width: float | None = None,
+        line_pattern: tuple[int, int, int, int, int] | None = None,
     ):
+        if isinstance(fill_color, bool):
+            fill_color = self.settings.fill_color
+        if isinstance(line_color, bool):
+            line_color = self.settings.fill_color
+        if line_width is None:
+            line_width = self.settings.line_width
+        if line_pattern is None:
+            line_pattern = self.settings.line_pattern
         return Rectangle(
             x,
             y,
             width,
             height,
-            rotate,
-            skew,
-            rounded_corner_top_left,
-            rounded_corner_top_right,
-            rounded_corner_bottom_left,
-            rounded_corner_bottom_right,
-            self,
+            fill_color,
+            line_color,
+            line_width,
+            line_pattern,
         )
 
     def create_elipse(
@@ -78,13 +107,55 @@ class Document:
         y: float,
         width: float,
         height: float,
-        rotate: float = 0,
-        skew: float = 0,
+        fill_color: tuple[int, int, int] | None | bool = False,
+        line_color: tuple[int, int, int] | None | bool = False,
+        line_width: float | None = None,
+        line_pattern: tuple[int, int, int, int, int] | None = None,
     ) -> Ellipse:
-        return Ellipse(x, y, width, height, rotate, skew, self)
+        if isinstance(fill_color, bool):
+            fill_color = self.settings.fill_color
+        if isinstance(line_color, bool):
+            line_color = self.settings.fill_color
+        if line_width is None:
+            line_width = self.settings.line_width
+        if line_pattern is None:
+            line_pattern = self.settings.line_pattern
+        return Ellipse(
+            x,
+            y,
+            width,
+            height,
+            fill_color,
+            line_color,
+            line_width,
+            line_pattern,
+        )
 
-    def create_arc(self, x1: float, y1: float, x2: float, y2: float) -> Arc:
-        return Arc(x1, y1, x2, y2, self)
+    def create_arc(
+        self,
+        x1: float,
+        y1: float,
+        x2: float,
+        y2: float,
+        line_color: tuple[int, int, int] | None | bool = False,
+        line_width: float | None = None,
+        line_pattern: tuple[int, int, int, int, int] | None = None,
+    ) -> Arc:
+        if isinstance(line_color, bool):
+            line_color = self.settings.fill_color
+        if line_width is None:
+            line_width = self.settings.line_width
+        if line_pattern is None:
+            line_pattern = self.settings.line_pattern
+        return Arc(
+            x1,
+            y1,
+            x2,
+            y2,
+            line_color,
+            line_width,
+            line_pattern,
+        )
 
     def create_triangle():
         # x, y, height, width,rotate, shear
@@ -119,6 +190,9 @@ class Document:
         # number of columns
         # number of rows
         pass
+
+    def import_svg(self, path: str) -> Svg:
+        return Svg(path)
 
     def export(self, data_type: str = "dto") -> Dto:
         match data_type:

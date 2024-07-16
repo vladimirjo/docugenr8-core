@@ -36,13 +36,22 @@ class Bezier:
 
 
 class Curve:
-    def __init__(self, x: float, y: float, doc: Document) -> None:
+    def __init__(
+        self,
+        x: float,
+        y: float,
+        closed: bool,
+        fill_color: tuple[int, int, int] | None,
+        line_color: tuple[int, int, int] | None,
+        line_width: float,
+        line_pattern: tuple[int, int, int, int, int],
+    ) -> None:
         self.path: list[Point | Bezier] = [Point(x, y)]
-        self.fill_color = doc.settings.fill_color
-        self.line_color = doc.settings.line_color
-        self.line_width = doc.settings.line_width
-        self.line_pattern = doc.settings.line_pattern
-        self.line_closed = doc.settings.line_closed
+        self.closed = closed
+        self.fill_color = fill_color
+        self.line_color = line_color
+        self.line_width = line_width
+        self.line_pattern = line_pattern
         self.transformations: list[Rotation | Skew] = []
 
     def add_point(
@@ -88,24 +97,23 @@ class Rectangle:
         y: float,
         width: float,
         height: float,
-        rounded_corner_top_left: float,
-        rounded_corner_top_right: float,
-        rounded_corner_bottom_left: float,
-        rounded_corner_bottom_right: float,
-        doc: Document,
+        fill_color: tuple[int, int, int] | None,
+        line_color: tuple[int, int, int] | None,
+        line_width: float,
+        line_pattern: tuple[int, int, int, int, int],
     ) -> None:
         self.x = x
         self.y = y
         self.width = width
         self.height = height
-        self.rounded_corner_top_left = rounded_corner_top_left
-        self.rounded_corner_top_right = rounded_corner_top_right
-        self.rounded_corner_bottom_left = rounded_corner_bottom_left
-        self.rounded_corner_bottom_right = rounded_corner_bottom_right
-        self.fill_color = doc.settings.fill_color
-        self.line_color = doc.settings.line_color
-        self.line_width = doc.settings.line_width
-        self.line_pattern = doc.settings.line_pattern
+        self.rounded_corner_top_left: float = 0
+        self.rounded_corner_top_right: float = 0
+        self.rounded_corner_bottom_left: float = 0
+        self.rounded_corner_bottom_right: float = 0
+        self.fill_color = fill_color
+        self.line_color = line_color
+        self.line_width = line_width
+        self.line_pattern = line_pattern
         self.transformations: list[Rotation | Skew] = []
 
     def add_rotation(
@@ -133,15 +141,17 @@ class Arc:
         y1: float,
         x2: float,
         y2: float,
-        doc: Document,
+        line_color: tuple[int, int, int] | None,
+        line_width: float,
+        line_pattern: tuple[int, int, int, int, int],
     ) -> None:
         self.x1 = x1
         self.y1 = y1
         self.x2 = x2
         self.y2 = y2
-        self.line_color = doc.settings.line_color
-        self.line_width = doc.settings.line_width
-        self.line_pattern = doc.settings.line_pattern
+        self.line_color = line_color
+        self.line_width = line_width
+        self.line_pattern = line_pattern
         self.transformations: list[Rotation | Skew] = []
 
     def add_rotation(
@@ -169,16 +179,19 @@ class Ellipse:
         y: float,
         width: float,
         height: float,
-        doc: Document,
+        fill_color: tuple[int, int, int] | None,
+        line_color: tuple[int, int, int] | None,
+        line_width: float,
+        line_pattern: tuple[int, int, int, int, int],
     ) -> None:
         self.x = x
         self.y = y
         self.width = width
         self.height = height
-        self.fill_color = doc.settings.fill_color
-        self.line_color = doc.settings.line_color
-        self.line_width = doc.settings.line_width
-        self.line_pattern = doc.settings.line_pattern
+        self.fill_color = fill_color
+        self.line_color = line_color
+        self.line_width = line_width
+        self.line_pattern = line_pattern
         self.transformations: list[Rotation | Skew] = []
 
     def add_rotation(
